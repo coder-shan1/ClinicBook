@@ -1,0 +1,28 @@
+# dependencies
+node_modules
+
+# build output
+dist
+dist-ssr
+
+# local env files (keep .env.example tracked)
+.env
+.env.*.local
+
+# testing
+coverage
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / os
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# generated API client (regenerated from docs/api/openapi.json)
+src/api/generated/schema.ts
+
+# vite
+.vite
