@@ -1,0 +1,3 @@
+# Generated API client types are written here by `npm run generate-api`
+# from docs/api/openapi.json. The schema.ts file is gitignored; this placeholder
+# keeps the directory tracked so the import path always exists.
