@@ -29,4 +29,12 @@ export default tseslint.config(
       ],
     },
   },
+  // Hooks and test helpers aren't React components; the react-refresh rule
+  // only makes sense for component files.
+  {
+    files: ['src/hooks/**', 'src/features/**/use*.ts', 'src/test/**'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 )
