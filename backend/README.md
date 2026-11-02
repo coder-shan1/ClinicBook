@@ -19,8 +19,11 @@ CREATE DATABASE clinicbook CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 mvn spring-boot:run
 ```
 
-The `local` profile is the default. It reads `DB_URL`, `DB_USER`, and `DB_PASSWORD`,
-falling back to `jdbc:mysql://localhost:3306/clinicbook`, `clinicbook`, `clinicbook`.
+The `local` profile is the default. It reads `CLINICBOOK_DB_URL`, `CLINICBOOK_DB_USER`,
+and `CLINICBOOK_DB_PASSWORD`, falling back to `jdbc:mysql://localhost:3306/clinicbook`,
+`clinicbook`, `clinicbook`. Local overrides are namespaced so unrelated `DB_*`
+environment variables on the machine cannot break ClinicBook. Production uses `DB_*`
+from Phase 7 onward.
 
 Health check: <http://localhost:8080/actuator/health>
 Swagger UI: <http://localhost:8080/swagger-ui.html>
@@ -35,9 +38,9 @@ mvn -B verify
 
 | Variable | Default (local) | Purpose |
 |---|---|---|
-| `DB_URL` | `jdbc:mysql://localhost:3306/clinicbook?...` | JDBC URL |
-| `DB_USER` | `clinicbook` | Database user |
-| `DB_PASSWORD` | `clinicbook` | Database password |
+| `CLINICBOOK_DB_URL` | `jdbc:mysql://localhost:3306/clinicbook?...` | JDBC URL |
+| `CLINICBOOK_DB_USER` | `clinicbook` | Database user |
+| `CLINICBOOK_DB_PASSWORD` | `clinicbook` | Database password |
 | `DB_POOL_SIZE` | `10` | Hikari maximum pool size |
 | `SERVER_PORT` | `8080` | HTTP port |
 
