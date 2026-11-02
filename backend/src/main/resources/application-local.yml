@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: ${CLINICBOOK_DB_URL:jdbc:mysql://localhost:3306/clinicbook?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${CLINICBOOK_DB_USER:clinicbook}
+    password: ${CLINICBOOK_DB_PASSWORD:clinicbook}
+
+logging:
+  level:
+    com.clinicbook: DEBUG
