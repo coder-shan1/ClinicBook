@@ -1,10 +1,12 @@
 package com.clinicbook.common.error;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -19,13 +21,21 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private final ApiErrorWriter errorWriter;
+
+    public GlobalExceptionHandler(ApiErrorWriter errorWriter) {
+        this.errorWriter = errorWriter;
+    }
 
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ApiError> handleApiException(ApiException ex, HttpServletRequest request) {
@@ -71,8 +81,16 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    ResponseEntity<ApiError> handleMethodNotSupported(HttpServletRequest request) {
-        return build(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "HTTP method not supported", request, List.of());
+    ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+                                                      HttpServletRequest request) {
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        Set<HttpMethod> supported = ex.getSupportedHttpMethods();
+        if (supported != null && !supported.isEmpty()) {
+            builder.allow(supported.toArray(HttpMethod[]::new));
+        }
+        ApiError body = new ApiError(Instant.now(), HttpStatus.METHOD_NOT_ALLOWED.value(),
+                "METHOD_NOT_ALLOWED", "HTTP method not supported", request.getRequestURI(), List.of());
+        return builder.body(body);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
@@ -82,9 +100,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
-    ResponseEntity<ApiError> handleMediaTypeNotAcceptable(HttpServletRequest request) {
-        return build(HttpStatus.NOT_ACCEPTABLE, "NOT_ACCEPTABLE",
-                "Requested response type is not supported", request, List.of());
+    void handleMediaTypeNotAcceptable(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        // Write directly: content negotiation cannot render the JSON error for an unacceptable Accept header.
+        errorWriter.write(response, HttpStatus.NOT_ACCEPTABLE, "NOT_ACCEPTABLE",
+                "Requested response type is not supported", request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)

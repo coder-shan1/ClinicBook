@@ -52,7 +52,7 @@ Stateless JWT authentication with rotating refresh tokens.
   Every refresh rotates the token; a revoked or expired token returns `401`.
 - Registration always creates a `PATIENT`. Roles (`PATIENT`, `DOCTOR`, `ADMIN`) are assigned by
   an administrator, never by the caller.
-- Passwords are BCrypt hashed and must be 8–72 characters.
+- Passwords are BCrypt hashed and must be 8–72 characters and at most 72 UTF-8 bytes.
 - Login is limited to 5 attempts per minute per client IP; the limit returns `429` with
   `Retry-After`. Adjust with `LOGIN_RATE_LIMIT_MAX_ATTEMPTS` and `LOGIN_RATE_LIMIT_WINDOW`.
 - Every error uses the standard shape:

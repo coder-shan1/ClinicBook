@@ -13,6 +13,7 @@ import com.clinicbook.user.dto.UserResponse;
 import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -29,9 +30,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -195,9 +200,19 @@ class AuthControllerTest {
     void meRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"))
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.path").value("/api/v1/auth/me"));
+    }
+
+    @Test
+    void methodNotAllowedAdvertisesSupportedMethods() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/register"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString("POST")))
+                .andExpect(jsonPath("$.error").value("METHOD_NOT_ALLOWED"))
+                .andExpect(jsonPath("$.path").value("/api/v1/auth/register"));
     }
 
     @Test
@@ -239,6 +254,101 @@ class AuthControllerTest {
         mockMvc.perform(get("/test/admin"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("ok"));
+    }
+
+    @Test
+    void registerTrimsEmailNameAndPhoneBeforeValidation() throws Exception {
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse());
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"  Jane@Example.COM  ","password":"password123","fullName":"  Jane Doe  ","phone":"  +1 (555) 123-4567  "}
+                                """))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<RegisterRequest> captor = ArgumentCaptor.forClass(RegisterRequest.class);
+        verify(authService).register(captor.capture());
+        RegisterRequest captured = captor.getValue();
+        assertThat(captured.email()).isEqualTo("Jane@Example.COM");
+        assertThat(captured.fullName()).isEqualTo("Jane Doe");
+        assertThat(captured.phone()).isEqualTo("+1 (555) 123-4567");
+    }
+
+    @Test
+    void registerTreatsWhitespaceOnlyPhoneAsEmpty() throws Exception {
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse());
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"jane@example.com","password":"password123","fullName":"Jane Doe","phone":"   "}
+                                """))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<RegisterRequest> captor = ArgumentCaptor.forClass(RegisterRequest.class);
+        verify(authService).register(captor.capture());
+        assertThat(captor.getValue().phone()).isEmpty();
+    }
+
+    @Test
+    void registerRejectsPasswordsLongerThan72Utf8Bytes() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"jane@example.com","password":"%s","fullName":"Jane Doe"}
+                                """.formatted("é".repeat(40))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("password")));
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void loginTrimsEmailBeforeValidation() throws Exception {
+        when(authService.login(any(LoginRequest.class))).thenReturn(authResponse());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"  jane@example.com  ","password":"password123"}
+                                """))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<LoginRequest> captor = ArgumentCaptor.forClass(LoginRequest.class);
+        verify(authService).login(captor.capture());
+        assertThat(captor.getValue().email()).isEqualTo("jane@example.com");
+    }
+
+    @Test
+    void loginRejectsPasswordsLongerThan72Utf8Bytes() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"jane@example.com","password":"%s"}
+                                """.formatted("中".repeat(30))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_FAILED"));
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void unsupportedAcceptReturnsAJson406InsteadOfLeakingAnErrorDispatch() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_XML)
+                        .content("""
+                                {"email":"jane@example.com","password":"password123","fullName":"Jane Doe"}
+                                """))
+                .andExpect(status().isNotAcceptable())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(406))
+                .andExpect(jsonPath("$.error").value("NOT_ACCEPTABLE"))
+                .andExpect(jsonPath("$.path").value("/api/v1/auth/register"));
+
+        verifyNoInteractions(authService);
     }
 
     private static AuthResponse authResponse() {
