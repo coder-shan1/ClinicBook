@@ -30,12 +30,12 @@ Branch: `chore/p0-bootstrap`
 
 Branch: `feature/p1-auth`
 
-- [ ] 🟧 Flyway `V1__users.sql` (mysql + postgresql)
-- [ ] 🟧 `User`, `Role`, `RefreshToken` entities and repositories
-- [ ] 🟧 Register, login, refresh, logout endpoints
-- [ ] 🟧 JWT service + filter, BCrypt, method security, CORS config
-- [ ] 🟧 Global exception handler with the standard error shape
-- [ ] 🟧 Tests: service unit tests; MockMvc for 401/403/validation; login rate limit
+- [x] 🟧 Flyway `V1__users.sql` (mysql + postgresql)
+- [x] 🟧 `User`, `Role`, `RefreshToken` entities and repositories
+- [x] 🟧 Register, login, refresh, logout endpoints
+- [x] 🟧 JWT service + filter, BCrypt, method security, CORS config
+- [x] 🟧 Global exception handler with the standard error shape
+- [x] 🟧 Tests: service unit tests; MockMvc for 401/403/validation; login rate limit
 - [ ] 🟦 Frontend: login and register pages, auth context, protected routes, API client with token refresh
 - [ ] 🟦 Vitest tests for login form (success, wrong password, validation)
 
