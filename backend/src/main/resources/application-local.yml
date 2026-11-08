@@ -4,6 +4,11 @@ spring:
     username: ${CLINICBOOK_DB_USER:clinicbook}
     password: ${CLINICBOOK_DB_PASSWORD:clinicbook}
 
+app:
+  jwt:
+    # Development-only key so the local profile starts without configuration.
+    secret: ${JWT_SECRET:dev-only-clinicbook-secret-change-me-0123456789abcdef0123456789abcdef}
+
 logging:
   level:
     com.clinicbook: DEBUG
