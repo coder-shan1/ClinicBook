@@ -1,8 +1,9 @@
-import type { AppointmentDTO, AuthUser, DoctorDTO, Specialty, TimeSlot } from '../api/types'
+import type { AppointmentDTO, DoctorDTO, Specialty, TimeSlot, UserResponse } from '../api/types'
 
 /**
- * In-memory mock data for MSW handlers. Fake only — emails use @example.com
- * (AGENTS.md §7). This is replaced by real backend data once endpoints exist.
+ * In-memory mock data for MSW handlers.
+ * All emails use @example.com (AGENTS.md §7 — fake only).
+ * Shapes match the real backend DTOs.
  */
 
 export const specialties: Specialty[] = [
@@ -30,7 +31,7 @@ export const doctors: DoctorDTO[] = [
     fullName: 'Dr. Mateo Silva',
     specialtyId: 'sp-2',
     specialtyName: 'Dermatology',
-    bio: 'Dermatologist specializing in acne, eczema, and skin cancer screening.',
+    bio: 'Dermatologist specialising in acne, eczema, and skin cancer screening.',
     consultationFee: 95,
     active: true,
     rating: 4.6,
@@ -72,13 +73,34 @@ export const doctors: DoctorDTO[] = [
 ]
 
 /**
- * Mock auth users. No passwords are stored — the mock login handler accepts any
- * credentials and returns the patient profile so the UI flow can be exercised.
+ * Mock users. Shape matches the real `UserResponse` DTO.
+ * `phone` is intentionally omitted on some to match the backend's `non_null` behaviour.
  */
-export const users: AuthUser[] = [
-  { id: 'usr-1', email: 'patient@example.com', role: 'PATIENT', fullName: 'Sam Patient' },
-  { id: 'usr-2', email: 'doctor@example.com', role: 'DOCTOR', fullName: 'Dr. Ada Okonkwo' },
-  { id: 'usr-3', email: 'admin@example.com', role: 'ADMIN', fullName: 'Alex Admin' },
+export const users: UserResponse[] = [
+  {
+    id: 1,
+    email: 'patient@example.com',
+    fullName: 'Sam Patient',
+    role: 'PATIENT',
+    enabled: true,
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 2,
+    email: 'doctor@example.com',
+    fullName: 'Dr. Ada Okonkwo',
+    role: 'DOCTOR',
+    enabled: true,
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 3,
+    email: 'admin@example.com',
+    fullName: 'Alex Admin',
+    role: 'ADMIN',
+    enabled: true,
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
 ]
 
 export const appointments: AppointmentDTO[] = []
@@ -87,17 +109,18 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-/**
- * Generate 30-minute AVAILABLE slots for a doctor on a given date (YYYY-MM-DD).
- * Slots run 09:00–17:00 UTC. Deterministic ids keep React Query keys stable.
- */
+/** Generate 30-min AVAILABLE slots for a doctor on a given date (YYYY-MM-DD).
+ *  Slots run 09:00–17:00 UTC. Deterministic IDs keep React Query keys stable. */
 export function generateSlots(doctorId: string, date?: string): TimeSlot[] {
   const day = date ?? todayISO()
   const slots: TimeSlot[] = []
   for (let hour = 9; hour < 17; hour++) {
     for (const minute of [0, 30]) {
-      const startAt = `${day}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00.000Z`
-      const endAt = `${day}T${String(hour).padStart(2, '0')}:${String(minute + 30).padStart(2, '0')}:00.000Z`
+      const h = String(hour).padStart(2, '0')
+      const m = String(minute).padStart(2, '0')
+      const m2 = String(minute + 30).padStart(2, '0')
+      const startAt = `${day}T${h}:${m}:00.000Z`
+      const endAt = `${day}T${h}:${m2}:00.000Z`
       slots.push({ id: `${doctorId}-${startAt}`, doctorId, startAt, endAt, status: 'AVAILABLE' })
     }
   }
