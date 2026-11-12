@@ -56,6 +56,11 @@ public class User {
         this.enabled = true;
     }
 
+    public void updateProfile(String fullName, String phone) {
+        this.fullName = fullName;
+        this.phone = phone;
+    }
+
     public void disable() {
         this.enabled = false;
     }
