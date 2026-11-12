@@ -36,8 +36,8 @@ Branch: `feature/p1-auth`
 - [x] 🟧 JWT service + filter, BCrypt, method security, CORS config
 - [x] 🟧 Global exception handler with the standard error shape
 - [x] 🟧 Tests: service unit tests; MockMvc for 401/403/validation; login rate limit
-- [ ] 🟦 Frontend: login and register pages, auth context, protected routes, API client with token refresh
-- [ ] 🟦 Vitest tests for login form (success, wrong password, validation)
+- [x] 🟦 Frontend: login and register pages, auth context, protected routes, API client with token refresh
+- [x] 🟦 Vitest tests for login form (success, wrong password, validation)
 
 **Exit:** A user can register, log in, and reach a role-protected page. Swagger UI documents all auth endpoints.
 
