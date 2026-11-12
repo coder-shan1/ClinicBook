@@ -1,23 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { screen } from '@testing-library/react'
+import { renderWithProviders } from './test/utils'
 import App from './App'
-
-function renderApp() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/']}>
-        <App />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  )
-}
 
 describe('App', () => {
   it('renders the home page', () => {
-    renderApp()
+    renderWithProviders(<App />)
     expect(
       screen.getByRole('heading', { name: /find and book the right doctor/i }),
     ).toBeInTheDocument()
