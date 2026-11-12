@@ -1,3 +1,6 @@
 app:
   jwt:
     secret: test-only-secret-0123456789abcdef0123456789abcdef0123456789abcdef
+  clinic:
+    zone: UTC
+    slot-horizon-days: 30
