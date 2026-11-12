@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
 import { useLoginMutation } from '../features/auth/useLoginMutation'
 import { getErrorMessage, isApiError } from '../api/client'
+import { normalizeEmail, validateEmail, validatePassword } from '../lib/validation'
 
 export default function LoginPage() {
   const { isAuthenticated } = useAuth()
@@ -19,9 +20,18 @@ export default function LoginPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    setFieldErrors({})
+
+    const errors: Record<string, string> = {}
+    const emailError = validateEmail(email)
+    const passwordError = validatePassword(password)
+    if (emailError) errors.email = emailError
+    if (passwordError) errors.password = passwordError
+
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     mutation.mutate(
-      { email: email.trim(), password },
+      { email: normalizeEmail(email), password },
       {
         onError: (err) => {
           if (isApiError(err)) {
@@ -35,6 +45,15 @@ export default function LoginPage() {
         },
       },
     )
+  }
+
+  function clearFieldError(field: string) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
   }
 
   const is429 = isApiError(mutation.error) &&
@@ -75,8 +94,12 @@ export default function LoginPage() {
             type="email"
             autoComplete="email"
             required
+            maxLength={254}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              clearFieldError('email')
+            }}
             aria-describedby={fieldErrors.email ? 'email-error' : undefined}
             aria-invalid={!!fieldErrors.email}
             className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
@@ -100,8 +123,12 @@ export default function LoginPage() {
             type="password"
             autoComplete="current-password"
             required
+            maxLength={72}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              clearFieldError('password')
+            }}
             aria-describedby={fieldErrors.password ? 'password-error' : undefined}
             aria-invalid={!!fieldErrors.password}
             className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${

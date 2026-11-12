@@ -3,6 +3,13 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
 import { useRegisterMutation } from '../features/auth/useRegisterMutation'
 import { getErrorMessage, isApiError } from '../api/client'
+import {
+  normalizeEmail,
+  validateEmail,
+  validateFullName,
+  validatePassword,
+  validatePhone,
+} from '../lib/validation'
 
 export default function RegisterPage() {
   const { isAuthenticated } = useAuth()
@@ -19,10 +26,23 @@ export default function RegisterPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    setFieldErrors({})
+
+    const errors: Record<string, string> = {}
+    const emailError = validateEmail(email)
+    const passwordError = validatePassword(password, 8)
+    const fullNameError = validateFullName(fullName)
+    const phoneError = validatePhone(phone)
+    if (emailError) errors.email = emailError
+    if (passwordError) errors.password = passwordError
+    if (fullNameError) errors.fullName = fullNameError
+    if (phoneError) errors.phone = phoneError
+
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     mutation.mutate(
       {
-        email: email.trim(),
+        email: normalizeEmail(email),
         password,
         fullName: fullName.trim(),
         phone: phone.trim() || undefined,
@@ -42,7 +62,16 @@ export default function RegisterPage() {
     )
   }
 
-  const globalError = mutation.isError && !fieldErrors.email && !fieldErrors.password && !fieldErrors.fullName
+  function clearFieldError(field: string) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
+
+  const globalError = mutation.isError && Object.keys(fieldErrors).length === 0
 
   return (
     <div className="mx-auto max-w-sm space-y-6">
@@ -70,8 +99,12 @@ export default function RegisterPage() {
             type="text"
             autoComplete="name"
             required
+            maxLength={120}
             value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            onChange={(e) => {
+              setFullName(e.target.value)
+              clearFieldError('fullName')
+            }}
             aria-describedby={fieldErrors.fullName ? 'fullName-error' : undefined}
             aria-invalid={!!fieldErrors.fullName}
             className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
@@ -95,8 +128,12 @@ export default function RegisterPage() {
             type="email"
             autoComplete="email"
             required
+            maxLength={254}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              clearFieldError('email')
+            }}
             aria-describedby={fieldErrors.email ? 'email-error' : undefined}
             aria-invalid={!!fieldErrors.email}
             className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
@@ -120,8 +157,12 @@ export default function RegisterPage() {
             type="password"
             autoComplete="new-password"
             required
+            maxLength={72}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              clearFieldError('password')
+            }}
             aria-describedby={
               fieldErrors.password ? 'password-error' : 'password-hint'
             }
@@ -150,8 +191,12 @@ export default function RegisterPage() {
             name="phone"
             type="tel"
             autoComplete="tel"
+            maxLength={30}
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => {
+              setPhone(e.target.value)
+              clearFieldError('phone')
+            }}
             aria-describedby={fieldErrors.phone ? 'phone-error' : undefined}
             aria-invalid={!!fieldErrors.phone}
             placeholder="+1 234 567 8900"

@@ -13,6 +13,8 @@ import com.clinicbook.user.dto.UserResponse;
 import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -110,9 +112,173 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.path").value("/api/v1/auth/register"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "user@gmail",             // reported bug: missing TLD
+            "user@localhost",         // single-label domain
+            "user@com",               // single-label domain
+            "user@example.c",         // one-character TLD
+            "user@example.123",       // numeric TLD
+            "user@example.c0m",       // digit in TLD
+            "user@example..com",      // empty domain label
+            "user@-example.com",      // label starts with hyphen
+            "user@example-.com",      // label ends with hyphen
+            "user@.com",              // empty first label
+            "user@@example.com",      // duplicate @
+            "user name@example.com",  // whitespace in local part
+            "plainaddress",
+            "@example.com",
+            "user@"
+    })
+    void registerRejectsEmailsWithoutARealDomain(String email) throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"password123","fullName":"Jane Doe"}
+                                """.formatted(email)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("email")));
+
+        verifyNoInteractions(authService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "jane@example.com",
+            "jane.doe+tag@sub.example.co.uk",
+            "JANE@EXAMPLE.COM",
+            "a@b.co",
+            "user_name@example.io",
+            "o'brien@example.com",
+            "user@example.xn--p1ai"
+    })
+    void registerAcceptsUsableEmails(String email) throws Exception {
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse());
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"password123","fullName":"Jane Doe"}
+                                """.formatted(email)))
+                .andExpect(status().isCreated());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "-------",
+            "123456",
+            "1234567890123456",
+            "++123456789",
+            "+ 123456789",
+            "call-me-now",
+            "123 456",
+            "1234567890123456789012345678901"
+    })
+    void registerRejectsInvalidPhoneNumbers(String phone) throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"jane@example.com","password":"password123","fullName":"Jane Doe","phone":"%s"}
+                                """.formatted(phone)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("phone")));
+
+        verifyNoInteractions(authService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "+1 234 567 8900",
+            "1234567",
+            "123-456-7890",
+            "123456789012345",
+            "+44 (0)20 7946 0958"
+    })
+    void registerAcceptsValidPhoneNumbers(String phone) throws Exception {
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse());
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"jane@example.com","password":"password123","fullName":"Jane Doe","phone":"%s"}
+                                """.formatted(phone)))
+                .andExpect(status().isCreated());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "<script>alert('xss')</script>",
+            "Jane\\nDoe",
+            "Jane 😀 Doe",
+            "...",
+            "12345",
+            "Jane_Doe",
+            "Jane@Doe"
+    })
+    void registerRejectsUnsafeOrNonNameValues(String fullName) throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"jane@example.com","password":"password123","fullName":"%s"}
+                                """.formatted(fullName)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("fullName")));
+
+        verifyNoInteractions(authService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "Jane Doe",
+            "O'Brien",
+            "Jean-Luc Picard",
+            "María José",
+            "李小龙",
+            "Jane Doe Jr.",
+            "A"
+    })
+    void registerAcceptsRealNames(String fullName) throws Exception {
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse());
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"jane@example.com","password":"password123","fullName":"%s"}
+                                """.formatted(fullName)))
+                .andExpect(status().isCreated());
+    }
+
     @Test
-    void registerReturnsConflictForAnExistingEmail() throws Exception {
-        when(authService.register(any(RegisterRequest.class)))
+    void registerRejectsDuplicateJsonFields() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"jane@example.com","email":"other@example.com","password":"password123","fullName":"Jane Doe"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"));
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void loginRejectsAnEmailWithoutARealDomain() throws Exception {        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"jane@gmail","password":"password123"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("email")));
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void registerReturnsConflictForAnExistingEmail() throws Exception {        when(authService.register(any(RegisterRequest.class)))
                 .thenThrow(new ApiException(HttpStatus.CONFLICT, "EMAIL_TAKEN", "Already registered"));
 
         mockMvc.perform(post("/api/v1/auth/register")

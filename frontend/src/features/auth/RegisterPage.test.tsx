@@ -110,13 +110,55 @@ describe('RegisterPage', () => {
 
     renderWithProviders(<RegisterPage />, { initialEntries: ['/register'] })
 
-    await user.type(screen.getByLabelText(/email address/i), 'not-an-email')
-    await user.type(screen.getByLabelText(/^password/i), 'short')
+    await user.type(screen.getByLabelText(/full name/i), 'New Patient')
+    await user.type(screen.getByLabelText(/email address/i), 'newuser@example.com')
+    await user.type(screen.getByLabelText(/^password/i), 'password123')
     await user.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => {
       expect(screen.getByText(/must be a well-formed email address/i)).toBeInTheDocument()
       expect(screen.getByText(/size must be between 8 and 72/i)).toBeInTheDocument()
     })
+  })
+
+  it('blocks invalid input before calling the API', async () => {
+    const user = userEvent.setup()
+    let requestCount = 0
+
+    server.use(
+      http.post('/api/v1/auth/register', () => {
+        requestCount += 1
+        return HttpResponse.json({}, { status: 201 })
+      }),
+    )
+
+    renderWithProviders(<RegisterPage />, { initialEntries: ['/register'] })
+
+    await user.type(screen.getByLabelText(/full name/i), "<script>alert('xss')</script>")
+    await user.type(screen.getByLabelText(/email address/i), 'newuser@gmail')
+    await user.type(screen.getByLabelText(/^password/i), 'short')
+    await user.type(screen.getByLabelText(/phone/i), '-------')
+    await user.click(screen.getByRole('button', { name: /create account/i }))
+
+    expect(await screen.findByText(/enter a valid email address/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/use letters, spaces, apostrophes, hyphens and periods only/i),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/password must be at least 8 characters/i)).toBeInTheDocument()
+    expect(screen.getByText(/enter a valid phone number/i)).toBeInTheDocument()
+    expect(requestCount).toBe(0)
+  })
+
+  it('rejects an email domain without a TLD', async () => {
+    const user = userEvent.setup()
+
+    renderWithProviders(<RegisterPage />, { initialEntries: ['/register'] })
+
+    await user.type(screen.getByLabelText(/full name/i), 'New Patient')
+    await user.type(screen.getByLabelText(/email address/i), 'newuser@gmail')
+    await user.type(screen.getByLabelText(/^password/i), 'password123')
+    await user.click(screen.getByRole('button', { name: /create account/i }))
+
+    expect(await screen.findByText(/enter a valid email address/i)).toBeInTheDocument()
   })
 })

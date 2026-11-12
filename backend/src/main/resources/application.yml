@@ -21,6 +21,10 @@ spring:
     default-property-inclusion: non_null
     deserialization:
       fail-on-unknown-properties: true
+    parser:
+      # Reject bodies such as {"email":"a@b.co","email":"c@d.co"} instead of silently
+      # letting the last value win during validation.
+      strict-duplicate-detection: true
 
 server:
   port: ${SERVER_PORT:8080}
