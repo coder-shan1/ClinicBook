@@ -1,13 +1,19 @@
 /**
- * TEMPORARY hand-written API types.
+ * API types derived from the real backend (Phase 1 — auth-only).
  *
- * These mirror the domain model in .agents/ARCHITECTURE.md §5 and the
- * endpoints in §7. They are a stand-in until the backend ships its OpenAPI spec
- * at docs/api/openapi.json, after which `npm run generate-api` produces typed
- * clients in ./generated and these hand-written types are removed.
+ * Sources:
+ *  - AuthController.java  (endpoints, request/response shapes)
+ *  - AuthService.java     (business logic, error codes)
+ *  - UserResponse.java    (user DTO)
+ *  - ApiError.java        (error shape)
+ *  - GlobalExceptionHandler.java (error codes)
  *
- * Do NOT edit entity shapes here without also updating the mock data in
- * src/mocks/db.ts and the handlers in src/mocks/handlers.ts.
+ * Phase 2+ types (doctor, appointment, slot, …) remain as forward-compatible
+ * placeholders for the MSW mock layer. They will be regenerated from
+ * docs/api/openapi.json once those endpoints exist.
+ *
+ * Jackson config: `non_null` → null fields are OMITTED from JSON.
+ * Mark every nullable backend field as `field?: T` (optional), not `field: T | null`.
  */
 
 export type Role = 'PATIENT' | 'DOCTOR' | 'ADMIN'
@@ -21,35 +27,91 @@ export type AppointmentStatus =
 
 export type SlotStatus = 'AVAILABLE' | 'BOOKED' | 'BLOCKED'
 
-/** ISO-8601 UTC timestamps are exchanged as strings at the API boundary. */
+/** ISO-8601 UTC strings as returned/sent at the API boundary. */
 export type IsoString = string
 
-export interface AuthUser {
-  id: string
+/* ------------------------------------------------------------------ Auth ---- */
+
+/** `UserResponse` from the backend — exactly what `AuthService.me()` and
+ *  `AuthService.issueTokens()` embed. `phone` is omitted from JSON when null
+ *  (`spring.jackson.default-property-inclusion: non_null`). */
+export interface UserResponse {
+  id: number            // Long on the server, safe as number in JS (< 2^53)
   email: string
-  role: Role
   fullName: string
+  phone?: string        // omitted when null — do NOT use `phone: string | null`
+  role: Role
+  enabled: boolean
+  createdAt: IsoString
 }
 
-export interface AuthTokenResponse {
+/** `AuthResponse` returned by /register, /login, and /refresh. */
+export interface AuthResponse {
   accessToken: string
-  /** Present when the refresh token is returned in the body (cookie alternative). */
-  refreshToken?: string
-  user: AuthUser
+  refreshToken: string  // opaque 43-char URL-safe base64 string; always present
+  tokenType: 'Bearer'
+  expiresIn: number     // access token TTL in seconds (default 900)
+  user: UserResponse
 }
 
+/** POST /auth/register */
 export interface RegisterRequest {
   email: string
   password: string
   fullName: string
   phone?: string
-  role?: Role
+  // `role` is NOT accepted — public registration always creates PATIENT
 }
 
+/** POST /auth/login */
 export interface LoginRequest {
   email: string
   password: string
 }
+
+/** POST /auth/refresh — backend takes a request BODY (not a cookie) */
+export interface RefreshRequest {
+  refreshToken: string
+}
+
+/** POST /auth/logout — idempotent; unknown tokens are silently ignored */
+export interface LogoutRequest {
+  refreshToken: string
+}
+
+/* ---------------------------------------------------------------- Errors ---- */
+
+/** Field-level validation error inside ApiError. */
+export interface FieldValidationError {
+  field: string
+  message: string
+}
+
+/**
+ * Standard error shape returned by every error response.
+ * Error codes from the backend:
+ *   Auth: EMAIL_TAKEN (409), INVALID_CREDENTIALS (401), ACCOUNT_DISABLED (403),
+ *         TOKEN_INVALID (401), TOKEN_REVOKED (401), TOKEN_EXPIRED (401),
+ *         UNAUTHORIZED (401), FORBIDDEN (403), TOO_MANY_REQUESTS (429)
+ *   Common: VALIDATION_FAILED (400), INVALID_REQUEST (400), CONFLICT (409),
+ *           NOT_FOUND (404), METHOD_NOT_ALLOWED (405), UNSUPPORTED_MEDIA_TYPE (415),
+ *           NOT_ACCEPTABLE (406), INTERNAL_ERROR (500)
+ */
+export interface ApiError {
+  timestamp: IsoString
+  status: number
+  error: string           // machine-readable code — use this, not status, for logic
+  message: string         // human-readable description — safe to show users
+  path: string
+  fieldErrors: FieldValidationError[]
+}
+
+/* ---------------------------------------------------------- Phase 2+ mocks -- */
+/*
+ * These types are forward-compatible placeholders used by the MSW mock layer.
+ * They do NOT yet correspond to real backend endpoints and will be replaced by
+ * generated types from docs/api/openapi.json once Phase 2+ endpoints exist.
+ */
 
 export interface Specialty {
   id: string
@@ -64,7 +126,6 @@ export interface DoctorDTO {
   bio: string
   consultationFee: number
   active: boolean
-  /** Average rating 1-5, null when no reviews yet. */
   rating: number | null
   reviewCount: number
 }
@@ -152,21 +213,6 @@ export interface CreateReviewRequest {
   appointmentId: string
   rating: number
   comment: string
-}
-
-export interface FieldError {
-  field: string
-  message: string
-}
-
-/** Standard error shape — see ARCHITECTURE.md §7. */
-export interface ApiError {
-  timestamp: IsoString
-  status: number
-  error: string
-  message: string
-  path: string
-  fieldErrors: FieldError[]
 }
 
 export interface AdminStats {

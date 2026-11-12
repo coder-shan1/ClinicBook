@@ -1,3 +1,11 @@
 export * from './types'
-export { apiClient, setAccessToken, getAccessToken, isApiError } from './client'
+export {
+  apiClient,
+  setTokens,
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  isApiError,
+  getErrorMessage,
+} from './client'
 export * from './endpoints'
