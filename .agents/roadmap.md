@@ -47,14 +47,14 @@ Branch: `feature/p1-auth`
 
 Branch: `feature/p2-doctors-schedule`
 
-- [ ] 🟧 Migrations: `specialty`, `doctor`, `working_hours`, `time_off`, `time_slot` (both dialects)
-- [ ] 🟧 Doctor CRUD (admin), doctor profile (doctor), public doctor search with filters + pagination
-- [ ] 🟧 Working hours and time-off endpoints (doctor)
-- [ ] 🟧 Slot generation service: next 30 days from working hours minus time off; idempotent
-- [ ] 🟧 `@Scheduled` nightly job to extend slots; regenerate on schedule change
-- [ ] 🟧 Seed data (fake doctors/specialties) via a `local` profile runner
-- [ ] 🟧 Tests: slot generation edge cases (time off, DST/UTC, overlapping hours), search queries on MySQL and Postgres
-- [ ] 🟦 Frontend: doctor list with search/filter, doctor detail page, doctor schedule editor
+- [x] 🟧 Migrations: `specialty`, `doctor`, `working_hours`, `time_off`, `time_slot` (both dialects)
+- [x] 🟧 Doctor CRUD (admin), doctor profile (doctor), public doctor search with filters + pagination
+- [x] 🟧 Working hours and time-off endpoints (doctor)
+- [x] 🟧 Slot generation service: next 30 days from working hours minus time off; idempotent
+- [x] 🟧 `@Scheduled` nightly job to extend slots; regenerate on schedule change
+- [x] 🟧 Seed data (fake doctors/specialties) via a `local` profile runner
+- [x] 🟧 Tests: slot generation edge cases (time off, DST/UTC, overlapping hours), search queries on MySQL and Postgres
+- [x] 🟦 Frontend: doctor list with search/filter, doctor detail page, doctor schedule editor
 
 **Exit:** Doctors can define availability; slots appear for the next 30 days; public search works.
 

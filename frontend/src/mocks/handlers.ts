@@ -148,6 +148,11 @@ export const handlers = [
     return HttpResponse.json(slots)
   }),
 
+  http.get(`${BASE}/specialties`, async () => {
+    await delay(LATENCY)
+    return HttpResponse.json(specialties)
+  }),
+
   /* -------------------------------------------------------- Appointments -- */
 
   http.get(`${BASE}/appointments/me`, () => HttpResponse.json(appointments)),

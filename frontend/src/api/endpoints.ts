@@ -94,6 +94,12 @@ export function completeAppointment(id: string): Promise<AppointmentDTO> {
   return apiClient.patch<AppointmentDTO>(`/appointments/${id}/complete`).then((r) => r.data)
 }
 
+/* --------------------------------------------------- Specialties ---- */
+
+export function listSpecialties(): Promise<Specialty[]> {
+  return apiClient.get<Specialty[]>('/specialties').then((r) => r.data)
+}
+
 /* --------------------------------------------------- Doctor schedule ------ */
 
 export function getWorkingHours(): Promise<WorkingHours[]> {
