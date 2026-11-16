@@ -64,4 +64,25 @@ public class TimeSlot {
         }
         this.endAt = endAt;
     }
+
+    /**
+     * Reserves the slot. The optimistic-lock version check makes concurrent bookings of
+     * the same slot fail instead of double-booking.
+     */
+    public void markBooked() {
+        if (status != TimeSlotStatus.AVAILABLE) {
+            throw new IllegalStateException("Only available slots can be booked");
+        }
+        this.status = TimeSlotStatus.BOOKED;
+    }
+
+    /**
+     * Releases a booked slot so another patient can take it after a cancellation.
+     */
+    public void markAvailable() {
+        if (status != TimeSlotStatus.BOOKED) {
+            throw new IllegalStateException("Only booked slots can be released");
+        }
+        this.status = TimeSlotStatus.AVAILABLE;
+    }
 }

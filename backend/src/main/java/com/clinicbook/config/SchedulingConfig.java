@@ -9,6 +9,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @Configuration
 @EnableScheduling
-@EnableConfigurationProperties(ClinicProperties.class)
+@EnableConfigurationProperties({ClinicProperties.class, BookingProperties.class})
 public class SchedulingConfig {
 }
