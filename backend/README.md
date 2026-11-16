@@ -110,6 +110,34 @@ first start. The data is idempotent and uses `@example.com` addresses only. Ever
 doctor signs in with password `Doctor123!`. Set `SEED_ENABLED=false` to turn it off;
 the runner never loads in tests or production.
 
+## Appointments
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/v1/appointments` | patient | Book an available slot; returns `201` and a `PENDING` appointment |
+| GET | `/api/v1/appointments/me` | patient, doctor | List own appointments, ordered by start time (`page`, `size`) |
+| PATCH | `/api/v1/appointments/{id}/cancel` | patient, doctor, admin | Cancel and release the slot |
+| PATCH | `/api/v1/appointments/{id}/confirm` | doctor, admin | `PENDING → CONFIRMED` |
+| PATCH | `/api/v1/appointments/{id}/complete` | doctor, admin | `CONFIRMED → COMPLETED` |
+| PATCH | `/api/v1/appointments/{id}/no-show` | doctor, admin | `CONFIRMED → NO_SHOW` |
+
+- Lifecycle: `PENDING → CONFIRMED → COMPLETED`; `PENDING`/`CONFIRMED → CANCELLED`;
+  `CONFIRMED → NO_SHOW`. `COMPLETED`, `CANCELLED` and `NO_SHOW` are terminal.
+- Booking is transactional. The slot is reserved with an optimistic lock on
+  `time_slot.version` and a unique index on the active appointment's `slot_id`; if two
+  patients race for one slot, exactly one wins and the other gets `409 SLOT_TAKEN`.
+  The 20-thread/1-slot integration test runs against both MySQL and PostgreSQL.
+- Cancelling returns the slot to `AVAILABLE`, detaches `slot_id` from the appointment and
+  keeps the appointment as history.
+- Rules: slots in the past are rejected (`400 SLOT_IN_PAST`); patients cannot cancel
+  within `BOOKING_CANCEL_CUTOFF` of the start (`409 CANCELLATION_WINDOW_CLOSED`); a patient
+  may hold at most `BOOKING_MAX_ACTIVE_PER_PATIENT` active (`PENDING` + `CONFIRMED`)
+  appointments (`409 BOOKING_LIMIT_REACHED`).
+- Ownership mismatches return `404 APPOINTMENT_NOT_FOUND` rather than revealing another
+  user's appointment. Invalid transitions return `409 INVALID_APPOINTMENT_STATE`.
+- Doctors only see and manage their own appointments; admins can manage any appointment
+  and are exempt from the cancellation cutoff.
+
 ## Configuration
 
 | Variable | Default (local) | Purpose |
@@ -129,6 +157,8 @@ the runner never loads in tests or production.
 | `CLINIC_TIME_ZONE` | `Asia/Kolkata` | Zone used to interpret working hours and clinic dates |
 | `SLOT_HORIZON_DAYS` | `30` | Days of bookable slots to materialise |
 | `SLOT_NIGHTLY_CRON` | `0 0 3 * * *` | Nightly slot-extension schedule (clinic timezone) |
+| `BOOKING_CANCEL_CUTOFF` | `2h` | How close to the start a patient may still cancel |
+| `BOOKING_MAX_ACTIVE_PER_PATIENT` | `3` | Maximum `PENDING` + `CONFIRMED` appointments per patient |
 | `SEED_ENABLED` | `true` | Create fake local-profile demo data on startup |
 
 The local JWT key exists only so the `local` profile starts without setup. Never use it in
