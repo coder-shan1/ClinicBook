@@ -43,6 +43,19 @@ export default function Layout() {
               </NavLink>
             )}
 
+            {isAuthenticated && user?.role === 'DOCTOR' && (
+              <NavLink
+                to="/doctor/schedule"
+                className={({ isActive }) =>
+                  isActive
+                    ? 'text-sm font-semibold text-slate-900'
+                    : 'text-sm text-slate-600 hover:text-slate-900'
+                }
+              >
+                My Schedule
+              </NavLink>
+            )}
+
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3">
                 <span className="hidden text-sm text-slate-600 sm:block" aria-label="Logged in as">

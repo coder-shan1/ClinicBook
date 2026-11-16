@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import DoctorsPage from './pages/DoctorsPage'
 import DoctorDetailPage from './pages/DoctorDetailPage'
+import DoctorSchedulePage from './pages/DoctorSchedulePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import MyAppointmentsPage from './pages/MyAppointmentsPage'
@@ -26,6 +27,16 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <MyAppointmentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Doctor schedule management — requires DOCTOR role */}
+        <Route
+          path="/doctor/schedule"
+          element={
+            <ProtectedRoute roles={['DOCTOR']}>
+              <DoctorSchedulePage />
             </ProtectedRoute>
           }
         />
