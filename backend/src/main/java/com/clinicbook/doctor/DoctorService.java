@@ -68,7 +68,7 @@ public class DoctorService {
     public PageResponse<DoctorSummaryResponse> search(Long specialtyId, String q,
                                                       int page, int size, String sort) {
         Pageable pageable = pageable(page, size, sort);
-        String query = q == null || q.isBlank() ? null : q.trim();
+        String query = q == null ? "" : q.trim();
         Page<Doctor> doctors = doctorRepository.search(specialtyId, query, pageable);
         return PageResponse.from(doctors, DoctorSummaryResponse::from);
     }
