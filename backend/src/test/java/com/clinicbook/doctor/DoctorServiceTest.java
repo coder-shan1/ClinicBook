@@ -103,12 +103,12 @@ class DoctorServiceTest {
 
     @Test
     void searchClampsUnsafePaginationAndIgnoresUnknownSortFields() {
-        when(doctorRepository.search(isNull(), isNull(), any(Pageable.class))).thenReturn(Page.empty());
+        when(doctorRepository.search(isNull(), eq(""), any(Pageable.class))).thenReturn(Page.empty());
 
         doctorService.search(null, "   ", -5, 500, "password,desc");
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-        verify(doctorRepository).search(isNull(), isNull(), captor.capture());
+        verify(doctorRepository).search(isNull(), eq(""), captor.capture());
         assertThat(captor.getValue().getPageNumber()).isZero();
         assertThat(captor.getValue().getPageSize()).isEqualTo(100);
         assertThat(captor.getValue().getSort().getOrderFor("user.fullName")).isNotNull();

@@ -53,7 +53,7 @@ abstract class AbstractDoctorSearchDatabaseTest {
 
     @Test
     void searchReturnsOnlyActiveDoctorsSortedByName() {
-        Page<Doctor> page = doctorRepository.search(null, null,
+        Page<Doctor> page = doctorRepository.search(null, "",
                 PageRequest.of(0, 10, Sort.by("user.fullName")));
 
         assertThat(page.getTotalElements()).isEqualTo(3);
@@ -64,7 +64,7 @@ abstract class AbstractDoctorSearchDatabaseTest {
 
     @Test
     void searchFiltersBySpecialty() {
-        Page<Doctor> page = doctorRepository.search(cardiologyId, null,
+        Page<Doctor> page = doctorRepository.search(cardiologyId, "",
                 PageRequest.of(0, 10, Sort.by("user.fullName")));
 
         assertThat(page.getContent())
@@ -94,7 +94,7 @@ abstract class AbstractDoctorSearchDatabaseTest {
 
     @Test
     void searchCombinesSpecialtyAndQuery() {
-        Page<Doctor> page = doctorRepository.search(cardiologyId, "car",
+        Page<Doctor> page = doctorRepository.search(cardiologyId, "nair",
                 PageRequest.of(0, 10, Sort.by("user.fullName")));
 
         assertThat(page.getContent())
@@ -104,9 +104,9 @@ abstract class AbstractDoctorSearchDatabaseTest {
 
     @Test
     void searchPaginatesAndReportsTotals() {
-        Page<Doctor> first = doctorRepository.search(null, null,
+        Page<Doctor> first = doctorRepository.search(null, "",
                 PageRequest.of(0, 2, Sort.by("user.fullName")));
-        Page<Doctor> second = doctorRepository.search(null, null,
+        Page<Doctor> second = doctorRepository.search(null, "",
                 PageRequest.of(1, 2, Sort.by("user.fullName")));
 
         assertThat(first.getContent())
@@ -121,7 +121,7 @@ abstract class AbstractDoctorSearchDatabaseTest {
 
     @Test
     void searchSortsByConsultationFeeDescending() {
-        Page<Doctor> page = doctorRepository.search(null, null,
+        Page<Doctor> page = doctorRepository.search(null, "",
                 PageRequest.of(0, 10, Sort.by(Sort.Order.desc("consultationFee"))));
 
         assertThat(page.getContent())

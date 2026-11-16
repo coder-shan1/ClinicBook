@@ -49,6 +49,11 @@ app:
     slot-horizon-days: ${SLOT_HORIZON_DAYS:30}
   slot:
     nightly-cron: ${SLOT_NIGHTLY_CRON:0 0 3 * * *}
+  booking:
+    # Patients cannot cancel later than this before the slot starts. Staff are exempt.
+    cancel-cutoff: ${BOOKING_CANCEL_CUTOFF:2h}
+    # PENDING + CONFIRMED appointments a patient may hold at once.
+    max-active-per-patient: ${BOOKING_MAX_ACTIVE_PER_PATIENT:3}
   seed:
     # Local-profile demo data. Disable with SEED_ENABLED=false.
     enabled: ${SEED_ENABLED:true}
