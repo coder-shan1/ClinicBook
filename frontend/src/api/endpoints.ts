@@ -6,18 +6,24 @@ import type {
   AuthResponse,
   CreateAppointmentRequest,
   CreateReviewRequest,
-  DoctorDTO,
-  DoctorListParams,
+  DoctorResponse,
+  DoctorSearchParams,
+  DoctorSummaryResponse,
   LoginRequest,
   LogoutRequest,
-  Page,
+  PageResponse,
   RefreshRequest,
   RegisterRequest,
+  ReplaceWorkingHoursRequest,
   ReviewDTO,
-  TimeOff,
-  TimeSlot,
+  SlotGenerationResponse,
+  SpecialtyResponse,
+  TimeOffRequest,
+  TimeOffResponse,
+  TimeSlotResponse,
+  UpdateDoctorProfileRequest,
   UserResponse,
-  WorkingHours,
+  WorkingHoursResponse,
 } from './types'
 
 /* ---------------------------------------------------------------- Auth ---- */
@@ -54,22 +60,72 @@ export function getMe(): Promise<UserResponse> {
   return apiClient.get<UserResponse>('/auth/me').then((r) => r.data)
 }
 
-/* ------------------------------------------------------------- Doctors ---- */
-/* NOTE: These endpoints do not exist yet (Phase 2). Requests are intercepted  */
-/* by MSW and served mock data. Types are forward-compatible placeholders.     */
+/* -------------------------------------------------------- Specialties ---- */
 
-export function listDoctors(params?: DoctorListParams): Promise<Page<DoctorDTO>> {
-  return apiClient.get<Page<DoctorDTO>>('/doctors', { params }).then((r) => r.data)
+/** GET /api/v1/specialties — list all active specialties ordered by name */
+export function listSpecialties(): Promise<SpecialtyResponse[]> {
+  return apiClient.get<SpecialtyResponse[]>('/specialties').then((r) => r.data)
 }
 
-export function getDoctor(id: string): Promise<DoctorDTO> {
-  return apiClient.get<DoctorDTO>(`/doctors/${id}`).then((r) => r.data)
+/* ------------------------------------------------------------ Doctors ---- */
+
+/** GET /api/v1/doctors — search active doctors with optional specialty, query, pagination */
+export function listDoctors(params?: DoctorSearchParams): Promise<PageResponse<DoctorSummaryResponse>> {
+  return apiClient.get<PageResponse<DoctorSummaryResponse>>('/doctors', { params }).then((r) => r.data)
 }
 
-export function getDoctorSlots(id: string, date?: string): Promise<TimeSlot[]> {
+/** GET /api/v1/doctors/{id} — get detailed profile of one active doctor */
+export function getDoctor(id: number | string): Promise<DoctorResponse> {
+  return apiClient.get<DoctorResponse>(`/doctors/${id}`).then((r) => r.data)
+}
+
+/** GET /api/v1/doctors/{id}/slots — list available slots for a doctor on a given date */
+export function getDoctorSlots(id: number | string, date?: string): Promise<TimeSlotResponse[]> {
   return apiClient
-    .get<TimeSlot[]>(`/doctors/${id}/slots`, { params: date ? { date } : undefined })
+    .get<TimeSlotResponse[]>(`/doctors/${id}/slots`, { params: date ? { date } : undefined })
     .then((r) => r.data)
+}
+
+/** GET /api/v1/doctors/me — return the authenticated doctor's profile */
+export function getMyDoctorProfile(): Promise<DoctorResponse> {
+  return apiClient.get<DoctorResponse>('/doctors/me').then((r) => r.data)
+}
+
+/** PUT /api/v1/doctors/me — update the authenticated doctor's profile */
+export function updateMyDoctorProfile(payload: UpdateDoctorProfileRequest): Promise<DoctorResponse> {
+  return apiClient.put<DoctorResponse>('/doctors/me', payload).then((r) => r.data)
+}
+
+/* --------------------------------------------------- Doctor schedule ------ */
+
+/** GET /api/v1/doctors/me/working-hours — list working hours */
+export function getWorkingHours(): Promise<WorkingHoursResponse[]> {
+  return apiClient.get<WorkingHoursResponse[]>('/doctors/me/working-hours').then((r) => r.data)
+}
+
+/** PUT /api/v1/doctors/me/working-hours — replace working hours and regenerate slots */
+export function updateWorkingHours(payload: ReplaceWorkingHoursRequest): Promise<WorkingHoursResponse[]> {
+  return apiClient.put<WorkingHoursResponse[]>('/doctors/me/working-hours', payload).then((r) => r.data)
+}
+
+/** GET /api/v1/doctors/me/time-off — list scheduled time off */
+export function getTimeOff(): Promise<TimeOffResponse[]> {
+  return apiClient.get<TimeOffResponse[]>('/doctors/me/time-off').then((r) => r.data)
+}
+
+/** POST /api/v1/doctors/me/time-off — add time off and regenerate slots */
+export function addTimeOff(payload: TimeOffRequest): Promise<TimeOffResponse> {
+  return apiClient.post<TimeOffResponse>('/doctors/me/time-off', payload).then((r) => r.data)
+}
+
+/** DELETE /api/v1/doctors/me/time-off/{id} — delete time off and regenerate slots */
+export function deleteTimeOff(id: number | string): Promise<void> {
+  return apiClient.delete(`/doctors/me/time-off/${id}`).then(() => undefined)
+}
+
+/** POST /api/v1/doctors/me/slots/regenerate — regenerate slots for next 30 days immediately */
+export function regenerateSlots(): Promise<SlotGenerationResponse> {
+  return apiClient.post<SlotGenerationResponse>('/doctors/me/slots/regenerate').then((r) => r.data)
 }
 
 /* -------------------------------------------------------- Appointments ---- */
@@ -92,20 +148,6 @@ export function confirmAppointment(id: string): Promise<AppointmentDTO> {
 
 export function completeAppointment(id: string): Promise<AppointmentDTO> {
   return apiClient.patch<AppointmentDTO>(`/appointments/${id}/complete`).then((r) => r.data)
-}
-
-/* --------------------------------------------------- Doctor schedule ------ */
-
-export function getWorkingHours(): Promise<WorkingHours[]> {
-  return apiClient.get<WorkingHours[]>('/doctors/me/working-hours').then((r) => r.data)
-}
-
-export function updateWorkingHours(payload: WorkingHours[]): Promise<WorkingHours[]> {
-  return apiClient.put<WorkingHours[]>('/doctors/me/working-hours', payload).then((r) => r.data)
-}
-
-export function addTimeOff(payload: Omit<TimeOff, 'id' | 'doctorId'>): Promise<TimeOff> {
-  return apiClient.post<TimeOff>('/doctors/me/time-off', payload).then((r) => r.data)
 }
 
 /* --------------------------------------------------------------- Reviews -- */
