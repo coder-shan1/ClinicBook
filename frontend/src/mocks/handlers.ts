@@ -4,32 +4,15 @@ import type {
   AppointmentDTO,
   AuthResponse,
   CreateAppointmentRequest,
-  DoctorResponse,
-  DoctorSummaryResponse,
+  DoctorDTO,
   LoginRequest,
   LogoutRequest,
-  PageResponse,
+  Page,
   RefreshRequest,
   RegisterRequest,
-  ReplaceWorkingHoursRequest,
-  SlotGenerationResponse,
-  TimeOffRequest,
-  TimeOffResponse,
-  TimeSlotResponse,
-  UpdateDoctorProfileRequest,
-  WorkingHoursResponse,
+  TimeSlot,
 } from '../api/types'
-import {
-  appointments,
-  doctors,
-  generateSlots,
-  setTimeOffList,
-  setWorkingHours,
-  specialties,
-  timeOffList,
-  users,
-  workingHoursList,
-} from './db'
+import { appointments, doctors, generateSlots, users } from './db'
 
 const BASE = '/api/v1'
 
@@ -111,7 +94,7 @@ export const handlers = [
   }),
 
   http.post(`${BASE}/auth/logout`, async ({ request }) => {
-    await (request.json() as Promise<LogoutRequest>) // consume body
+    await request.json() as LogoutRequest // consume body
     return new HttpResponse(null, { status: 204 })
   }),
 
@@ -119,148 +102,49 @@ export const handlers = [
     return HttpResponse.json(users[0])
   }),
 
-  /* --------------------------------------------------------- Specialties -- */
-
-  http.get(`${BASE}/specialties`, async () => {
-    await delay(LATENCY / 2)
-    return HttpResponse.json(specialties)
-  }),
-
   /* ------------------------------------------------------------- Doctors -- */
 
   http.get(`${BASE}/doctors`, async ({ request }) => {
     await delay(LATENCY)
     const url = new URL(request.url)
-    const specialtyParam = url.searchParams.get('specialty')
+    const specialty = url.searchParams.get('specialty')?.toLowerCase()
     const q = url.searchParams.get('q')?.toLowerCase()
     const page = Math.max(0, Number(url.searchParams.get('page') ?? '0'))
     const size = Math.max(1, Number(url.searchParams.get('size') ?? '20'))
 
-    let result: DoctorResponse[] = doctors.filter((d) => d.active)
-    if (specialtyParam) {
+    let result: DoctorDTO[] = doctors.filter((d) => d.active)
+    if (specialty) {
       result = result.filter(
         (d) =>
-          d.specialty.id === Number(specialtyParam) ||
-          d.specialty.name.toLowerCase() === specialtyParam.toLowerCase(),
+          d.specialtyName.toLowerCase() === specialty || d.specialtyId === specialty,
       )
     }
-    if (q) {
-      result = result.filter(
-        (d) =>
-          d.fullName.toLowerCase().includes(q) ||
-          d.specialty.name.toLowerCase().includes(q) ||
-          (d.bio && d.bio.toLowerCase().includes(q)),
-      )
-    }
+    if (q) result = result.filter((d) => d.fullName.toLowerCase().includes(q))
 
     const start = page * size
-    const paginated = result.slice(start, start + size)
-    const content: DoctorSummaryResponse[] = paginated.map((d) => ({
-      id: d.id,
-      fullName: d.fullName,
-      specialty: d.specialty,
-      bio: d.bio,
-      consultationFee: d.consultationFee,
-    }))
-
-    const body: PageResponse<DoctorSummaryResponse> = {
+    const content = result.slice(start, start + size)
+    const body: Page<DoctorDTO> = {
       content,
       page,
       size,
       totalElements: result.length,
       totalPages: Math.max(1, Math.ceil(result.length / size)),
-      last: page >= Math.ceil(result.length / size) - 1,
     }
     return HttpResponse.json(body)
   }),
 
-  http.get(`${BASE}/doctors/me`, async () => {
-    await delay(LATENCY / 2)
-    return HttpResponse.json(doctors[0])
-  }),
-
-  http.put(`${BASE}/doctors/me`, async ({ request }) => {
-    await delay(LATENCY / 2)
-    const body = (await request.json()) as UpdateDoctorProfileRequest
-    const specialty = specialties.find((s) => s.id === body.specialtyId) ?? specialties[0]
-    const updated: DoctorResponse = {
-      ...doctors[0],
-      specialty,
-      bio: body.bio ?? doctors[0].bio,
-      consultationFee: body.consultationFee,
-    }
-    return HttpResponse.json(updated)
-  }),
-
-  http.get(`${BASE}/doctors/me/working-hours`, async () => {
-    await delay(LATENCY / 2)
-    return HttpResponse.json(workingHoursList)
-  }),
-
-  http.put(`${BASE}/doctors/me/working-hours`, async ({ request }) => {
-    await delay(LATENCY / 2)
-    const body = (await request.json()) as ReplaceWorkingHoursRequest
-    const newHours: WorkingHoursResponse[] = body.workingHours.map((wh, idx) => ({
-      id: idx + 1,
-      dayOfWeek: wh.dayOfWeek,
-      startTime: wh.startTime,
-      endTime: wh.endTime,
-      slotMinutes: wh.slotMinutes,
-    }))
-    setWorkingHours(newHours)
-    return HttpResponse.json(newHours)
-  }),
-
-  http.get(`${BASE}/doctors/me/time-off`, async () => {
-    await delay(LATENCY / 2)
-    return HttpResponse.json(timeOffList)
-  }),
-
-  http.post(`${BASE}/doctors/me/time-off`, async ({ request }) => {
-    await delay(LATENCY / 2)
-    const body = (await request.json()) as TimeOffRequest
-    const newEntry: TimeOffResponse = {
-      id: timeOffList.length + 1,
-      startAt: body.startAt,
-      endAt: body.endAt,
-      reason: body.reason,
-      createdAt: new Date().toISOString(),
-    }
-    timeOffList.push(newEntry)
-    return HttpResponse.json(newEntry, { status: 201 })
-  }),
-
-  http.delete(`${BASE}/doctors/me/time-off/:id`, async ({ params }) => {
-    await delay(LATENCY / 2)
-    const id = Number(params.id)
-    setTimeOffList(timeOffList.filter((item) => item.id !== id))
-    return new HttpResponse(null, { status: 204 })
-  }),
-
-  http.post(`${BASE}/doctors/me/slots/regenerate`, async () => {
-    await delay(LATENCY / 2)
-    const res: SlotGenerationResponse = {
-      generatedAt: new Date().toISOString(),
-      created: 120,
-      removed: 4,
-      resized: 0,
-      available: 116,
-    }
-    return HttpResponse.json(res)
-  }),
-
   http.get(`${BASE}/doctors/:id`, async ({ params, request }) => {
     await delay(LATENCY)
-    const id = Number(params.id)
+    const id = String(params.id)
     const doctor = doctors.find((d) => d.id === id)
-    if (!doctor) return notFound(`Doctor ${params.id} not found`, new URL(request.url).pathname)
+    if (!doctor) return notFound(`Doctor ${id} not found`, new URL(request.url).pathname)
     return HttpResponse.json(doctor)
   }),
 
   http.get(`${BASE}/doctors/:id/slots`, async ({ request, params }) => {
     const url = new URL(request.url)
     const date = url.searchParams.get('date') ?? undefined
-    const slots: TimeSlotResponse[] = generateSlots(String(params.id), date)
+    const slots: TimeSlot[] = generateSlots(String(params.id), date)
     return HttpResponse.json(slots)
   }),
 
@@ -270,16 +154,16 @@ export const handlers = [
 
   http.post(`${BASE}/appointments`, async ({ request }) => {
     const body = (await request.json()) as CreateAppointmentRequest
-    const doctor = doctors[0]
+    const doctor = doctors.find((d) => d.id === body.slotId.split('-')[0]) ?? doctors[0]
     const appt: AppointmentDTO = {
       id: `appt-${appointments.length + 1}`,
       patientId: String(users[0].id),
       patientName: users[0].fullName,
-      doctorId: String(doctor.id),
+      doctorId: doctor.id,
       doctorName: doctor.fullName,
-      slotId: String(body.slotId),
-      startAt: new Date().toISOString(),
-      endAt: new Date().toISOString(),
+      slotId: body.slotId,
+      startAt: body.slotId.split('T').slice(1).join('T') || new Date().toISOString(),
+      endAt: body.slotId.split('T').slice(1).join('T') || new Date().toISOString(),
       status: 'PENDING',
       reason: body.reason ?? null,
       notes: null,

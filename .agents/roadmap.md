@@ -14,13 +14,13 @@ Legend: 🟦 Kiro · 🟧 OpenCode · 👤 you (review/decision)
 Branch: `chore/p0-bootstrap`
 
 - [x] 👤 Create GitHub repo `clinicbook`, enable branch protection on `main` and `develop`
-- [ ] 🟧 Create monorepo skeleton from `ARCHITECTURE.md` §4 (empty `backend/`, `frontend/`, `docs/`, `.github/`)
-- [ ] 🟧 Spring Boot project (Java 21, Maven) with Web, JPA, Security, Validation, Actuator, Flyway, MySQL + PostgreSQL drivers, springdoc
-- [ ] 🟦 Vite + React + TypeScript + Tailwind project
-- [ ] 🟧 `.gitignore`, `.editorconfig`, `.env.example`, PR template, root `AGENTS.md` pointer
-- [ ] 🟧 Local MySQL database `clinicbook` + `local` profile connecting; app boots and `/actuator/health` is UP
-- [ ] 🟦 Add `.kiro/steering` pointer to `.agents/` docs
-- [ ] 👤 First ADRs (monorepo, dual-dialect DB)
+- [X] 🟧 Create monorepo skeleton from `ARCHITECTURE.md` §4 (empty `backend/`, `frontend/`, `docs/`, `.github/`)
+- [X] 🟧 Spring Boot project (Java 21, Maven) with Web, JPA, Security, Validation, Actuator, Flyway, MySQL + PostgreSQL drivers, springdoc
+- [X] 🟦 Vite + React + TypeScript + Tailwind project
+- [X] 🟧 `.gitignore`, `.editorconfig`, `.env.example`, PR template, root `AGENTS.md` pointer
+- [x]🟧 Local MySQL database `clinicbook` + `local` profile connecting; app boots and `/actuator/health` is UP
+- [X] 🟦 Add `.kiro/steering` pointer to `.agents/` docs
+- [X] 👤 First ADRs (monorepo, dual-dialect DB)
 
 **Exit:** `mvn verify` and `npm run build` both pass on a fresh clone.
 
@@ -30,14 +30,14 @@ Branch: `chore/p0-bootstrap`
 
 Branch: `feature/p1-auth`
 
-- [ ] 🟧 Flyway `V1__users.sql` (mysql + postgresql)
-- [ ] 🟧 `User`, `Role`, `RefreshToken` entities and repositories
-- [ ] 🟧 Register, login, refresh, logout endpoints
-- [ ] 🟧 JWT service + filter, BCrypt, method security, CORS config
-- [ ] 🟧 Global exception handler with the standard error shape
-- [ ] 🟧 Tests: service unit tests; MockMvc for 401/403/validation; login rate limit
-- [ ] 🟦 Frontend: login and register pages, auth context, protected routes, API client with token refresh
-- [ ] 🟦 Vitest tests for login form (success, wrong password, validation)
+- [x] 🟧 Flyway `V1__users.sql` (mysql + postgresql)
+- [x] 🟧 `User`, `Role`, `RefreshToken` entities and repositories
+- [x] 🟧 Register, login, refresh, logout endpoints
+- [x] 🟧 JWT service + filter, BCrypt, method security, CORS config
+- [x] 🟧 Global exception handler with the standard error shape
+- [x] 🟧 Tests: service unit tests; MockMvc for 401/403/validation; login rate limit
+- [x] 🟦 Frontend: login and register pages, auth context, protected routes, API client with token refresh
+- [x] 🟦 Vitest tests for login form (success, wrong password, validation)
 
 **Exit:** A user can register, log in, and reach a role-protected page. Swagger UI documents all auth endpoints.
 

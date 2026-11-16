@@ -1,12 +1,4 @@
-import type {
-  AppointmentDTO,
-  DoctorResponse,
-  SpecialtyResponse,
-  TimeOffResponse,
-  TimeSlotResponse,
-  UserResponse,
-  WorkingHoursResponse,
-} from '../api/types'
+import type { AppointmentDTO, DoctorDTO, Specialty, TimeSlot, UserResponse } from '../api/types'
 
 /**
  * In-memory mock data for MSW handlers.
@@ -14,77 +6,76 @@ import type {
  * Shapes match the real backend DTOs.
  */
 
-export const specialties: SpecialtyResponse[] = [
-  { id: 1, name: 'Cardiology', description: 'Preventive and clinical heart care.' },
-  { id: 2, name: 'Dermatology', description: 'Skin, hair, and nail health.' },
-  { id: 3, name: 'Pediatrics', description: 'Infant, child, and adolescent care.' },
-  { id: 4, name: 'General Practice', description: 'Primary care and family medicine.' },
-  { id: 5, name: 'Neurology', description: 'Brain and nervous system disorders.' },
+export const specialties: Specialty[] = [
+  { id: 'sp-1', name: 'Cardiology' },
+  { id: 'sp-2', name: 'Dermatology' },
+  { id: 'sp-3', name: 'Pediatrics' },
+  { id: 'sp-4', name: 'General Practice' },
+  { id: 'sp-5', name: 'Neurology' },
 ]
 
-export const doctors: DoctorResponse[] = [
+export const doctors: DoctorDTO[] = [
   {
-    id: 1,
-    userId: 2,
+    id: 'doc-1',
     fullName: 'Dr. Ada Okonkwo',
-    email: 'ada@example.com',
-    phone: '+1 555-0101',
-    specialty: specialties[0],
+    specialtyId: 'sp-1',
+    specialtyName: 'Cardiology',
     bio: 'Board-certified cardiologist focused on preventive heart health.',
     consultationFee: 120,
     active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
+    rating: 4.8,
+    reviewCount: 23,
   },
   {
-    id: 2,
-    userId: 4,
+    id: 'doc-2',
     fullName: 'Dr. Mateo Silva',
-    email: 'mateo@example.com',
-    phone: '+1 555-0102',
-    specialty: specialties[1],
+    specialtyId: 'sp-2',
+    specialtyName: 'Dermatology',
     bio: 'Dermatologist specialising in acne, eczema, and skin cancer screening.',
     consultationFee: 95,
     active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
+    rating: 4.6,
+    reviewCount: 17,
   },
   {
-    id: 3,
-    userId: 5,
+    id: 'doc-3',
     fullName: 'Dr. Priya Nair',
-    email: 'priya@example.com',
-    phone: '+1 555-0103',
-    specialty: specialties[2],
+    specialtyId: 'sp-3',
+    specialtyName: 'Pediatrics',
     bio: 'Pediatrician caring for newborns through adolescents.',
     consultationFee: 80,
     active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
+    rating: 4.9,
+    reviewCount: 41,
   },
   {
-    id: 4,
-    userId: 6,
+    id: 'doc-4',
     fullName: 'Dr. Liam Walsh',
-    email: 'liam@example.com',
-    phone: '+1 555-0104',
-    specialty: specialties[3],
+    specialtyId: 'sp-4',
+    specialtyName: 'General Practice',
     bio: 'Family doctor for everyday health concerns and check-ups.',
     consultationFee: 70,
     active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
+    rating: 4.4,
+    reviewCount: 9,
   },
   {
-    id: 5,
-    userId: 7,
+    id: 'doc-5',
     fullName: 'Dr. Sofia Ramos',
-    email: 'sofia@example.com',
-    phone: '+1 555-0105',
-    specialty: specialties[4],
+    specialtyId: 'sp-5',
+    specialtyName: 'Neurology',
     bio: 'Neurologist treating headaches, migraines, and nerve disorders.',
     consultationFee: 150,
     active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
+    rating: 4.7,
+    reviewCount: 12,
   },
 ]
 
+/**
+ * Mock users. Shape matches the real `UserResponse` DTO.
+ * `phone` is intentionally omitted on some to match the backend's `non_null` behaviour.
+ */
 export const users: UserResponse[] = [
   {
     id: 1,
@@ -112,43 +103,17 @@ export const users: UserResponse[] = [
   },
 ]
 
-export let workingHoursList: WorkingHoursResponse[] = [
-  { id: 1, dayOfWeek: 'MONDAY', startTime: '09:00:00', endTime: '17:00:00', slotMinutes: 30 },
-  { id: 2, dayOfWeek: 'TUESDAY', startTime: '09:00:00', endTime: '17:00:00', slotMinutes: 30 },
-  { id: 3, dayOfWeek: 'WEDNESDAY', startTime: '09:00:00', endTime: '17:00:00', slotMinutes: 30 },
-  { id: 4, dayOfWeek: 'THURSDAY', startTime: '09:00:00', endTime: '17:00:00', slotMinutes: 30 },
-  { id: 5, dayOfWeek: 'FRIDAY', startTime: '09:00:00', endTime: '16:00:00', slotMinutes: 30 },
-]
-
-export function setWorkingHours(newHours: WorkingHoursResponse[]) {
-  workingHoursList = newHours
-}
-
-export let timeOffList: TimeOffResponse[] = [
-  {
-    id: 1,
-    startAt: '2026-12-24T00:00:00.000Z',
-    endAt: '2026-12-26T23:59:59.000Z',
-    reason: 'Holiday leave',
-    createdAt: '2026-11-01T00:00:00.000Z',
-  },
-]
-
-export function setTimeOffList(newList: TimeOffResponse[]) {
-  timeOffList = newList
-}
-
 export const appointments: AppointmentDTO[] = []
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-/** Generate 30-min AVAILABLE slots for a doctor on a given date (YYYY-MM-DD). */
-export function generateSlots(doctorId: number | string, date?: string): TimeSlotResponse[] {
+/** Generate 30-min AVAILABLE slots for a doctor on a given date (YYYY-MM-DD).
+ *  Slots run 09:00–17:00 UTC. Deterministic IDs keep React Query keys stable. */
+export function generateSlots(doctorId: string, date?: string): TimeSlot[] {
   const day = date ?? todayISO()
-  const slots: TimeSlotResponse[] = []
-  let idCounter = Number(doctorId) * 1000 || 1000
+  const slots: TimeSlot[] = []
   for (let hour = 9; hour < 17; hour++) {
     for (const minute of [0, 30]) {
       const h = String(hour).padStart(2, '0')
@@ -156,12 +121,7 @@ export function generateSlots(doctorId: number | string, date?: string): TimeSlo
       const m2 = String(minute + 30).padStart(2, '0')
       const startAt = `${day}T${h}:${m}:00.000Z`
       const endAt = `${day}T${h}:${m2}:00.000Z`
-      slots.push({
-        id: idCounter++,
-        startAt,
-        endAt,
-        status: 'AVAILABLE',
-      })
+      slots.push({ id: `${doctorId}-${startAt}`, doctorId, startAt, endAt, status: 'AVAILABLE' })
     }
   }
   return slots

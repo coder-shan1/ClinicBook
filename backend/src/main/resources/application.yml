@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: clinicbook
+  profiles:
+    default: local
+  datasource:
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/{vendor}
+  jackson:
+    default-property-inclusion: non_null
+    deserialization:
+      fail-on-unknown-properties: true
+    parser:
+      # Reject bodies such as {"email":"a@b.co","email":"c@d.co"} instead of silently
+      # letting the last value win during validation.
+      strict-duplicate-detection: true
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+app:
+  jwt:
+    issuer: ${JWT_ISSUER:clinicbook}
+    # Must be at least 32 bytes. Set JWT_SECRET outside the local profile.
+    secret: ${JWT_SECRET:}
+    access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+    refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:7d}
+  cors:
+    allowed-origins: ${CORS_ORIGIN:http://localhost:5173}
+  rate-limit:
+    login:
+      max-attempts: ${LOGIN_RATE_LIMIT_MAX_ATTEMPTS:5}
+      window: ${LOGIN_RATE_LIMIT_WINDOW:1m}
+  clinic:
+    # Working hours are wall-clock times in this zone; slots are stored as UTC.
+    zone: ${CLINIC_TIME_ZONE:Asia/Kolkata}
+    slot-horizon-days: ${SLOT_HORIZON_DAYS:30}
+  slot:
+    nightly-cron: ${SLOT_NIGHTLY_CRON:0 0 3 * * *}
+  seed:
+    # Local-profile demo data. Disable with SEED_ENABLED=false.
+    enabled: ${SEED_ENABLED:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

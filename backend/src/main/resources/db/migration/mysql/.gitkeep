@@ -1,0 +1,2 @@
+# Keep this directory: Flyway needs a valid location even before the first migration.
+# Every migration added here must also be added to ../postgresql with the same filename.

@@ -106,7 +106,8 @@ describe('LoginPage', () => {
 
     renderWithProviders(<LoginPage />, { initialEntries: ['/login'] })
 
-    await user.type(screen.getByLabelText(/email address/i), 'bad')
+    await user.type(screen.getByLabelText(/email address/i), 'test@example.com')
+    await user.type(screen.getByLabelText(/password/i), 'password123')
     await user.click(screen.getByRole('button', { name: /log in/i }))
 
     // Field-level errors should appear
@@ -114,6 +115,46 @@ describe('LoginPage', () => {
       expect(screen.getByText(/must be a valid email address/i)).toBeInTheDocument()
       expect(screen.getByText(/must not be blank/i)).toBeInTheDocument()
     })
+  })
+
+  it('blocks malformed emails before calling the API', async () => {
+    const user = userEvent.setup()
+    let requestCount = 0
+
+    server.use(
+      http.post('/api/v1/auth/login', () => {
+        requestCount += 1
+        return HttpResponse.json({}, { status: 200 })
+      }),
+    )
+
+    renderWithProviders(<LoginPage />, { initialEntries: ['/login'] })
+
+    await user.type(screen.getByLabelText(/email address/i), 'jane@gmail')
+    await user.type(screen.getByLabelText(/password/i), 'password123')
+    await user.click(screen.getByRole('button', { name: /log in/i }))
+
+    expect(await screen.findByText(/enter a valid email address/i)).toBeInTheDocument()
+    expect(requestCount).toBe(0)
+  })
+
+  it('blocks an empty form before calling the API', async () => {
+    const user = userEvent.setup()
+    let requestCount = 0
+
+    server.use(
+      http.post('/api/v1/auth/login', () => {
+        requestCount += 1
+        return HttpResponse.json({}, { status: 200 })
+      }),
+    )
+
+    renderWithProviders(<LoginPage />, { initialEntries: ['/login'] })
+    await user.click(screen.getByRole('button', { name: /log in/i }))
+
+    expect(await screen.findByText(/email is required/i)).toBeInTheDocument()
+    expect(screen.getByText(/password is required/i)).toBeInTheDocument()
+    expect(requestCount).toBe(0)
   })
 
   it('shows rate limit warning on 429 (TOO_MANY_REQUESTS)', async () => {
