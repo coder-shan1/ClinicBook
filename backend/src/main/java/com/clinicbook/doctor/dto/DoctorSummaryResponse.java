@@ -9,7 +9,9 @@ public record DoctorSummaryResponse(
         String fullName,
         SpecialtyResponse specialty,
         String bio,
-        BigDecimal consultationFee) {
+        BigDecimal consultationFee,
+        BigDecimal ratingAverage,
+        int ratingCount) {
 
     public static DoctorSummaryResponse from(Doctor doctor) {
         return new DoctorSummaryResponse(
@@ -17,6 +19,8 @@ public record DoctorSummaryResponse(
                 doctor.getUser().getFullName(),
                 SpecialtyResponse.from(doctor.getSpecialty()),
                 doctor.getBio(),
-                doctor.getConsultationFee());
+                doctor.getConsultationFee(),
+                doctor.getRatingAverage(),
+                doctor.getRatingCount());
     }
 }

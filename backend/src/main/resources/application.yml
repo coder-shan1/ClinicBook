@@ -17,6 +17,18 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration/{vendor}
+  mail:
+    # Local development uses Mailpit / MailHog on port 1025. Override for real SMTP.
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_STARTTLS:false}
   jackson:
     default-property-inclusion: non_null
     deserialization:
@@ -54,6 +66,15 @@ app:
     cancel-cutoff: ${BOOKING_CANCEL_CUTOFF:2h}
     # PENDING + CONFIRMED appointments a patient may hold at once.
     max-active-per-patient: ${BOOKING_MAX_ACTIVE_PER_PATIENT:3}
+  notifications:
+    # Emails are best-effort; failures are logged but never break an appointment action.
+    enabled: ${NOTIFICATIONS_ENABLED:true}
+    from: ${MAIL_FROM:no-reply@clinicbook.local}
+    clinic-name: ${CLINIC_NAME:ClinicBook}
+    # Runs hourly by default. The job only emails CONFIRMED appointments starting
+    # within the reminder lead time, and notification_log makes each send idempotent.
+    reminder-cron: ${REMINDER_CRON:0 0 * * * *}
+    reminder-lead: ${REMINDER_LEAD:24h}
   seed:
     # Local-profile demo data. Disable with SEED_ENABLED=false.
     enabled: ${SEED_ENABLED:true}

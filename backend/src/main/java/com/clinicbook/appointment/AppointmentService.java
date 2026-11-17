@@ -2,6 +2,9 @@ package com.clinicbook.appointment;
 
 import com.clinicbook.appointment.dto.AppointmentResponse;
 import com.clinicbook.appointment.dto.CreateAppointmentRequest;
+import com.clinicbook.appointment.event.AppointmentBookedEvent;
+import com.clinicbook.appointment.event.AppointmentCancelledEvent;
+import com.clinicbook.appointment.event.AppointmentConfirmedEvent;
 import com.clinicbook.auth.JwtPrincipal;
 import com.clinicbook.common.error.ApiException;
 import com.clinicbook.common.page.PageResponse;
@@ -19,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -45,19 +49,22 @@ public class AppointmentService {
     private final DoctorRepository doctorRepository;
     private final BookingProperties bookingProperties;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                               TimeSlotRepository timeSlotRepository,
                               UserRepository userRepository,
                               DoctorRepository doctorRepository,
                               BookingProperties bookingProperties,
-                              Clock clock) {
+                              Clock clock,
+                              ApplicationEventPublisher eventPublisher) {
         this.appointmentRepository = appointmentRepository;
         this.timeSlotRepository = timeSlotRepository;
         this.userRepository = userRepository;
         this.doctorRepository = doctorRepository;
         this.bookingProperties = bookingProperties;
         this.clock = clock;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -106,6 +113,7 @@ public class AppointmentService {
             // that slipped past the optimistic-lock check.
             throw slotTaken();
         }
+        eventPublisher.publishEvent(new AppointmentBookedEvent(appointment.getId()));
         return AppointmentResponse.from(appointment);
     }
 
@@ -127,6 +135,7 @@ public class AppointmentService {
         Appointment appointment = requireAccessibleForUpdate(appointmentId, principal);
         ensureTransition(appointment, AppointmentStatus.CONFIRMED);
         appointment.transitionTo(AppointmentStatus.CONFIRMED);
+        eventPublisher.publishEvent(new AppointmentConfirmedEvent(appointment.getId()));
         return AppointmentResponse.from(appointment);
     }
 
@@ -158,6 +167,7 @@ public class AppointmentService {
 
         appointment.transitionTo(AppointmentStatus.CANCELLED);
         releaseSlot(appointment);
+        eventPublisher.publishEvent(new AppointmentCancelledEvent(appointment.getId()));
         return AppointmentResponse.from(appointment);
     }
 

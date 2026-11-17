@@ -17,6 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 
 @Entity
@@ -42,6 +43,12 @@ public class Doctor {
 
     @Column(name = "consultation_fee", nullable = false, precision = 10, scale = 2)
     private BigDecimal consultationFee;
+
+    @Column(name = "rating_average", precision = 3, scale = 2)
+    private BigDecimal ratingAverage;
+
+    @Column(name = "rating_count", nullable = false)
+    private int ratingCount;
 
     @Column(nullable = false)
     private boolean active;
@@ -69,6 +76,21 @@ public class Doctor {
 
     public void activate() {
         this.active = true;
+    }
+
+    /**
+     * Folds a new rating into the running average. Callers lock the doctor row so
+     * concurrent reviews cannot lose an update.
+     */
+    public void addRating(int rating) {
+        BigDecimal previousTotal = ratingAverage == null
+                ? BigDecimal.ZERO
+                : ratingAverage.multiply(BigDecimal.valueOf(ratingCount));
+        int updatedCount = ratingCount + 1;
+        this.ratingAverage = previousTotal
+                .add(BigDecimal.valueOf(rating))
+                .divide(BigDecimal.valueOf(updatedCount), 2, RoundingMode.HALF_UP);
+        this.ratingCount = updatedCount;
     }
 
     @PrePersist
