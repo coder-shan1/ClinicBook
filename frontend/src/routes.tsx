@@ -7,6 +7,7 @@ import DoctorDetailPage from './pages/DoctorDetailPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import MyAppointmentsPage from './pages/MyAppointmentsPage'
+import DoctorSchedulePage from './pages/DoctorSchedulePage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export function AppRoutes() {
@@ -26,6 +27,15 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <MyAppointmentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/schedule"
+          element={
+            <ProtectedRoute roles={['DOCTOR']}>
+              <DoctorSchedulePage />
             </ProtectedRoute>
           }
         />

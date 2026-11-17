@@ -1,204 +1,252 @@
 /**
- * API types derived from the real backend (Phase 1 — auth-only).
+ * App-facing API types for the ClinicBook backend.
  *
- * Sources:
- *  - AuthController.java  (endpoints, request/response shapes)
- *  - AuthService.java     (business logic, error codes)
- *  - UserResponse.java    (user DTO)
- *  - ApiError.java        (error shape)
- *  - GlobalExceptionHandler.java (error codes)
+ * These mirror the OpenAPI contract in `docs/api/openapi.json`. The generated
+ * contract in `src/api/generated/schema.ts` is the source of truth; the types here
+ * are narrowed to the non-null fields the UI consumes (Jackson is configured with
+ * `non_null`, so nullable backend fields are omitted from JSON).
  *
- * Phase 2+ types (doctor, appointment, slot, …) remain as forward-compatible
- * placeholders for the MSW mock layer. They will be regenerated from
- * docs/api/openapi.json once those endpoints exist.
- *
- * Jackson config: `non_null` → null fields are OMITTED from JSON.
- * Mark every nullable backend field as `field?: T` (optional), not `field: T | null`.
+ * When the backend contract changes: run `npm run generate-api` and update this file.
  */
+
+import type { components } from './generated/schema'
+
+type Schema = components['schemas']
 
 export type Role = 'PATIENT' | 'DOCTOR' | 'ADMIN'
 
-export type AppointmentStatus =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'COMPLETED'
-  | 'CANCELLED'
-  | 'NO_SHOW'
+export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
 
-export type SlotStatus = 'AVAILABLE' | 'BOOKED' | 'BLOCKED'
+export type TimeSlotStatus = 'AVAILABLE' | 'BOOKED' | 'BLOCKED'
+
+/** Stable, machine-readable error identifiers returned by the backend. */
+export type ApiErrorCode =
+  | 'VALIDATION_FAILED'
+  | 'INVALID_REQUEST'
+  | 'INVALID_CREDENTIALS'
+  | 'EMAIL_TAKEN'
+  | 'TOKEN_REVOKED'
+  | 'TOO_MANY_REQUESTS'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'SLOT_NOT_FOUND'
+  | 'SLOT_IN_PAST'
+  | 'SLOT_TAKEN'
+  | 'BOOKING_LIMIT_REACHED'
+  | 'DOCTOR_INACTIVE'
+  | 'APPOINTMENT_NOT_FOUND'
+  | 'INVALID_APPOINTMENT_STATE'
+  | 'CANCELLATION_WINDOW_CLOSED'
+  | 'DOCTOR_PROFILE_NOT_FOUND'
+  | (string & {})
 
 /** ISO-8601 UTC strings as returned/sent at the API boundary. */
 export type IsoString = string
 
 /* ------------------------------------------------------------------ Auth ---- */
 
-/** `UserResponse` from the backend — exactly what `AuthService.me()` and
- *  `AuthService.issueTokens()` embed. `phone` is omitted from JSON when null
- *  (`spring.jackson.default-property-inclusion: non_null`). */
 export interface UserResponse {
-  id: number            // Long on the server, safe as number in JS (< 2^53)
+  id: number
   email: string
   fullName: string
-  phone?: string        // omitted when null — do NOT use `phone: string | null`
+  phone?: string
   role: Role
   enabled: boolean
   createdAt: IsoString
 }
 
-/** `AuthResponse` returned by /register, /login, and /refresh. */
 export interface AuthResponse {
   accessToken: string
-  refreshToken: string  // opaque 43-char URL-safe base64 string; always present
+  refreshToken: string
   tokenType: 'Bearer'
-  expiresIn: number     // access token TTL in seconds (default 900)
+  expiresIn: number
   user: UserResponse
 }
 
-/** POST /auth/register */
 export interface RegisterRequest {
   email: string
   password: string
   fullName: string
   phone?: string
-  // `role` is NOT accepted — public registration always creates PATIENT
 }
 
-/** POST /auth/login */
 export interface LoginRequest {
   email: string
   password: string
 }
 
-/** POST /auth/refresh — backend takes a request BODY (not a cookie) */
 export interface RefreshRequest {
   refreshToken: string
 }
 
-/** POST /auth/logout — idempotent; unknown tokens are silently ignored */
 export interface LogoutRequest {
   refreshToken: string
 }
 
 /* ---------------------------------------------------------------- Errors ---- */
 
-/** Field-level validation error inside ApiError. */
 export interface FieldValidationError {
   field: string
   message: string
 }
 
-/**
- * Standard error shape returned by every error response.
- * Error codes from the backend:
- *   Auth: EMAIL_TAKEN (409), INVALID_CREDENTIALS (401), ACCOUNT_DISABLED (403),
- *         TOKEN_INVALID (401), TOKEN_REVOKED (401), TOKEN_EXPIRED (401),
- *         UNAUTHORIZED (401), FORBIDDEN (403), TOO_MANY_REQUESTS (429)
- *   Common: VALIDATION_FAILED (400), INVALID_REQUEST (400), CONFLICT (409),
- *           NOT_FOUND (404), METHOD_NOT_ALLOWED (405), UNSUPPORTED_MEDIA_TYPE (415),
- *           NOT_ACCEPTABLE (406), INTERNAL_ERROR (500)
- */
 export interface ApiError {
   timestamp: IsoString
   status: number
-  error: string           // machine-readable code — use this, not status, for logic
-  message: string         // human-readable description — safe to show users
+  error: ApiErrorCode
+  message: string
   path: string
   fieldErrors: FieldValidationError[]
 }
 
-/* ---------------------------------------------------------- Phase 2+ mocks -- */
-/*
- * These types are forward-compatible placeholders used by the MSW mock layer.
- * They do NOT yet correspond to real backend endpoints and will be replaced by
- * generated types from docs/api/openapi.json once Phase 2+ endpoints exist.
- */
+/* --------------------------------------------------- Phase 2: Specialties --- */
 
-export interface Specialty {
-  id: string
+export interface SpecialtyResponse {
+  id: number
   name: string
+  description?: string
 }
 
-export interface DoctorDTO {
-  id: string
+export interface SpecialtyRequest {
+  name: string
+  description?: string
+}
+
+/* ------------------------------------------------------ Phase 2: Doctors ---- */
+
+export interface DoctorSummaryResponse {
+  id: number
   fullName: string
-  specialtyId: string
-  specialtyName: string
-  bio: string
+  specialty: SpecialtyResponse
+  bio?: string
+  consultationFee: number
+}
+
+export interface DoctorResponse {
+  id: number
+  userId: number
+  fullName: string
+  email: string
+  phone?: string
+  specialty: SpecialtyResponse
+  bio?: string
   consultationFee: number
   active: boolean
-  rating: number | null
-  reviewCount: number
+  createdAt: IsoString
 }
 
-export interface DoctorListParams {
-  specialty?: string
+export interface UpdateDoctorProfileRequest {
+  specialtyId: number
+  bio?: string
+  consultationFee: number
+}
+
+export interface DoctorSearchParams {
+  specialty?: number
   q?: string
   page?: number
   size?: number
   sort?: string
 }
 
-export interface Page<T> {
+export interface PageResponse<T> {
   content: T[]
   page: number
   size: number
   totalElements: number
   totalPages: number
+  last: boolean
 }
 
-export type DayOfWeek =
-  | 'MONDAY'
-  | 'TUESDAY'
-  | 'WEDNESDAY'
-  | 'THURSDAY'
-  | 'FRIDAY'
-  | 'SATURDAY'
-  | 'SUNDAY'
+/* ----------------------------------------------------- Phase 2: Schedule ---- */
 
-export interface WorkingHours {
-  id: string
-  doctorId: string
+export type DayOfWeek =
+  'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
+
+export interface WorkingHoursResponse {
+  id: number
   dayOfWeek: DayOfWeek
   startTime: string
   endTime: string
   slotMinutes: number
 }
 
-export interface TimeOff {
-  id: string
-  doctorId: string
-  startAt: IsoString
-  endAt: IsoString
-  reason: string
+export interface WorkingHoursRequest {
+  dayOfWeek: DayOfWeek
+  startTime: string
+  endTime: string
+  slotMinutes: number
 }
 
-export interface TimeSlot {
-  id: string
-  doctorId: string
-  startAt: IsoString
-  endAt: IsoString
-  status: SlotStatus
+export interface ReplaceWorkingHoursRequest {
+  workingHours: WorkingHoursRequest[]
 }
 
-export interface AppointmentDTO {
-  id: string
-  patientId: string
-  patientName: string
-  doctorId: string
-  doctorName: string
-  slotId: string | null
+export interface TimeOffResponse {
+  id: number
   startAt: IsoString
   endAt: IsoString
-  status: AppointmentStatus
-  reason: string | null
-  notes: string | null
+  reason?: string
   createdAt: IsoString
 }
 
-export interface CreateAppointmentRequest {
-  slotId: string
+export interface TimeOffRequest {
+  startAt: IsoString
+  endAt: IsoString
   reason?: string
 }
+
+export interface TimeSlotResponse {
+  id: number
+  startAt: IsoString
+  endAt: IsoString
+  status: TimeSlotStatus
+}
+
+export interface SlotGenerationResponse {
+  generatedAt: IsoString
+  created: number
+  removed: number
+  resized: number
+  available: number
+}
+
+/* -------------------------------------------------- Phase 3: Appointments ---- */
+
+export interface CreateAppointmentRequest {
+  slotId: number
+}
+
+export interface AppointmentResponse {
+  id: number
+  patientId: number
+  patientName: string
+  doctorId: number
+  doctorName: string
+  /** Omitted after the appointment is cancelled (the slot is released). */
+  slotId?: number
+  startAt: IsoString
+  endAt: IsoString
+  status: AppointmentStatus
+  createdAt: IsoString
+  updatedAt: IsoString
+}
+
+/* --------------------------------------------------- Backwards-compatibility - */
+
+export type Specialty = SpecialtyResponse
+export type DoctorDTO = DoctorResponse
+export type DoctorListParams = DoctorSearchParams
+export type Page<T> = PageResponse<T>
+export type WorkingHours = WorkingHoursResponse
+export type TimeOff = TimeOffResponse
+export type TimeSlot = TimeSlotResponse
+export type SlotStatus = TimeSlotStatus
+export type AppointmentDTO = AppointmentResponse
+
+/* ---------------------------------------------------------- Forward mocks ---- */
+/* Endpoints that the backend has not implemented yet. These are served by MSW   */
+/* when mock mode is enabled (VITE_API_MOCKING=enabled).                          */
 
 export interface ReviewDTO {
   id: string
@@ -230,3 +278,19 @@ export interface AdminUser {
   enabled: boolean
   createdAt: IsoString
 }
+
+/**
+ * Compile-time guard: these types must stay assignable to the generated contract.
+ * If the backend adds/renames a field, `npm run generate-api` + `tsc` will fail here.
+ */
+type SpecAssignable<T extends SpecType, SpecType> = T
+export type _AppointmentContract = SpecAssignable<
+  AppointmentResponse,
+  Schema['AppointmentResponse']
+>
+export type _DoctorContract = SpecAssignable<DoctorResponse, Schema['DoctorResponse']>
+export type _SlotContract = SpecAssignable<TimeSlotResponse, Schema['TimeSlotResponse']>
+export type _PageContract = SpecAssignable<
+  PageResponse<DoctorSummaryResponse>,
+  Schema['PageResponseDoctorSummaryResponse']
+>

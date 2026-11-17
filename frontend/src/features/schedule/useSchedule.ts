@@ -5,7 +5,7 @@ import {
   getTimeOff,
   getWorkingHours,
   regenerateSlots,
-  updateWorkingHours,
+  replaceWorkingHours,
   type ReplaceWorkingHoursRequest,
   type TimeOffRequest,
 } from '../../api'
@@ -20,9 +20,10 @@ export function useWorkingHours() {
 export function useUpdateWorkingHours() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: ReplaceWorkingHoursRequest) => updateWorkingHours(payload),
+    mutationFn: (payload: ReplaceWorkingHoursRequest) => replaceWorkingHours(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workingHours'] })
+      queryClient.invalidateQueries({ queryKey: ['doctorSlots'] })
     },
   })
 }
@@ -40,6 +41,7 @@ export function useAddTimeOff() {
     mutationFn: (payload: TimeOffRequest) => addTimeOff(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeOff'] })
+      queryClient.invalidateQueries({ queryKey: ['doctorSlots'] })
     },
   })
 }
@@ -47,15 +49,20 @@ export function useAddTimeOff() {
 export function useDeleteTimeOff() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: number | string) => deleteTimeOff(id),
+    mutationFn: (id: number) => deleteTimeOff(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeOff'] })
+      queryClient.invalidateQueries({ queryKey: ['doctorSlots'] })
     },
   })
 }
 
 export function useRegenerateSlots() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => regenerateSlots(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctorSlots'] })
+    },
   })
 }

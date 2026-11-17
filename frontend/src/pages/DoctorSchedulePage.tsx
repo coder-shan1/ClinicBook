@@ -26,14 +26,16 @@ const SLOT_DURATIONS = [15, 20, 30, 45, 60, 90, 120]
 function formatDateTime(isoString: string): string {
   try {
     const d = new Date(isoString)
-    return d.toLocaleString([], {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'UTC',
-    }) + ' UTC'
+    return (
+      d.toLocaleString([], {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC',
+      }) + ' UTC'
+    )
   } catch {
     return isoString
   }
@@ -125,7 +127,9 @@ export default function DoctorSchedulePage() {
     // Validate shift times
     for (const s of shifts) {
       if (s.startTime >= s.endTime) {
-        setWhValidationMsg(`Shift on ${s.dayOfWeek} has start time (${s.startTime}) at or after end time (${s.endTime}).`)
+        setWhValidationMsg(
+          `Shift on ${s.dayOfWeek} has start time (${s.startTime}) at or after end time (${s.endTime}).`,
+        )
         return
       }
     }
@@ -189,7 +193,8 @@ export default function DoctorSchedulePage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Doctor Schedule &amp; Availability</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Configure your regular weekly working hours, record planned time off, and manage slot generation.
+          Configure your regular weekly working hours, record planned time off, and manage slot
+          generation.
         </p>
       </div>
 
@@ -198,7 +203,8 @@ export default function DoctorSchedulePage() {
         <div>
           <h2 className="text-base font-semibold text-teal-900">Immediate Slot Regeneration</h2>
           <p className="text-sm text-teal-800">
-            Recompute all available booking slots for the upcoming 30 days based on your current schedule.
+            Recompute all available booking slots for the upcoming 30 days based on your current
+            schedule.
           </p>
         </div>
         <button
@@ -212,7 +218,10 @@ export default function DoctorSchedulePage() {
       </div>
 
       {regenerateMutation.isSuccess && regenerateMutation.data && (
-        <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+        <div
+          role="status"
+          className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+        >
           Slots regenerated at {new Date(regenerateMutation.data.generatedAt).toLocaleTimeString()}:{' '}
           <strong>{regenerateMutation.data.created}</strong> slots created,{' '}
           <strong>{regenerateMutation.data.removed}</strong> removed,{' '}
@@ -241,26 +250,32 @@ export default function DoctorSchedulePage() {
         {isWhLoading && <LoadingSpinner label="Loading working hours…" />}
 
         {isWhError && (
-          <ErrorState
-            message={whError instanceof Error ? whError.message : 'Failed to load working hours.'}
-            onRetry={() => void refetchWh()}
-          />
+          <ErrorState message={getErrorMessage(whError)} onRetry={() => void refetchWh()} />
         )}
 
         {whValidationMsg && (
-          <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          <div
+            role="alert"
+            className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+          >
             {whValidationMsg}
           </div>
         )}
 
         {whSuccessMsg && (
-          <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          <div
+            role="status"
+            className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
+          >
             {whSuccessMsg}
           </div>
         )}
 
         {updateWhMutation.isError && (
-          <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          <div
+            role="alert"
+            className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+          >
             {getErrorMessage(updateWhMutation.error)}
           </div>
         )}
@@ -277,7 +292,9 @@ export default function DoctorSchedulePage() {
                     className="flex flex-wrap items-center gap-3 rounded-md border border-slate-200 bg-slate-50/50 p-3 text-sm"
                   >
                     <div className="w-36">
-                      <label htmlFor={`day-${idx}`} className="sr-only">Day of week</label>
+                      <label htmlFor={`day-${idx}`} className="sr-only">
+                        Day of week
+                      </label>
                       <select
                         id={`day-${idx}`}
                         value={shift.dayOfWeek}
@@ -293,7 +310,9 @@ export default function DoctorSchedulePage() {
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <label htmlFor={`start-${idx}`} className="text-xs text-slate-500">From:</label>
+                      <label htmlFor={`start-${idx}`} className="text-xs text-slate-500">
+                        From:
+                      </label>
                       <input
                         id={`start-${idx}`}
                         type="time"
@@ -305,7 +324,9 @@ export default function DoctorSchedulePage() {
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <label htmlFor={`end-${idx}`} className="text-xs text-slate-500">To:</label>
+                      <label htmlFor={`end-${idx}`} className="text-xs text-slate-500">
+                        To:
+                      </label>
                       <input
                         id={`end-${idx}`}
                         type="time"
@@ -317,11 +338,15 @@ export default function DoctorSchedulePage() {
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <label htmlFor={`slot-${idx}`} className="text-xs text-slate-500">Slot duration:</label>
+                      <label htmlFor={`slot-${idx}`} className="text-xs text-slate-500">
+                        Slot duration:
+                      </label>
                       <select
                         id={`slot-${idx}`}
                         value={shift.slotMinutes}
-                        onChange={(e) => handleShiftChange(idx, 'slotMinutes', Number(e.target.value))}
+                        onChange={(e) =>
+                          handleShiftChange(idx, 'slotMinutes', Number(e.target.value))
+                        }
                         className="rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:ring-2 focus:ring-teal-500"
                       >
                         {SLOT_DURATIONS.map((mins) => (
@@ -365,16 +390,23 @@ export default function DoctorSchedulePage() {
         <div>
           <h2 className="text-lg font-bold text-slate-900">Planned Time Off</h2>
           <p className="text-sm text-slate-500">
-            Book vacation, leaves, or unavailability. Slots overlapping with time off are removed automatically.
+            Book vacation, leaves, or unavailability. Slots overlapping with time off are removed
+            automatically.
           </p>
         </div>
 
         {/* Add time off form */}
-        <form onSubmit={handleAddTimeOff} className="rounded-lg border border-slate-100 bg-slate-50 p-4 space-y-3">
+        <form
+          onSubmit={handleAddTimeOff}
+          className="rounded-lg border border-slate-100 bg-slate-50 p-4 space-y-3"
+        >
           <h3 className="text-sm font-semibold text-slate-800">Add Time Off Period</h3>
 
           {toErrorMsg && (
-            <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-2.5 text-xs text-red-800">
+            <div
+              role="alert"
+              className="rounded-md border border-red-200 bg-red-50 p-2.5 text-xs text-red-800"
+            >
               {toErrorMsg}
             </div>
           )}
@@ -437,10 +469,7 @@ export default function DoctorSchedulePage() {
         {isToLoading && <LoadingSpinner label="Loading time off periods…" />}
 
         {isToError && (
-          <ErrorState
-            message={toError instanceof Error ? toError.message : 'Failed to load time off.'}
-            onRetry={() => void refetchTo()}
-          />
+          <ErrorState message={getErrorMessage(toError)} onRetry={() => void refetchTo()} />
         )}
 
         {!isToLoading && !isToError && timeOffData && (
@@ -461,9 +490,13 @@ export default function DoctorSchedulePage() {
                   <tbody className="divide-y divide-slate-100">
                     {timeOffData.map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50">
-                        <td className="py-2.5 px-3 font-medium text-slate-900">{formatDateTime(item.startAt)}</td>
+                        <td className="py-2.5 px-3 font-medium text-slate-900">
+                          {formatDateTime(item.startAt)}
+                        </td>
                         <td className="py-2.5 px-3">{formatDateTime(item.endAt)}</td>
-                        <td className="py-2.5 px-3">{item.reason || <span className="italic text-slate-400">None</span>}</td>
+                        <td className="py-2.5 px-3">
+                          {item.reason || <span className="italic text-slate-400">None</span>}
+                        </td>
                         <td className="py-2.5 px-3 text-right">
                           <button
                             type="button"

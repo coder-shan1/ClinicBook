@@ -6,6 +6,7 @@ export {
   getAccessToken,
   getRefreshToken,
   isApiError,
+  getApiErrorCode,
   getErrorMessage,
 } from './client'
 export * from './endpoints'
