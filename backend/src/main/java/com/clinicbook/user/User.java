@@ -69,6 +69,10 @@ public class User {
         this.enabled = true;
     }
 
+    public void changeRole(Role role) {
+        this.role = role;
+    }
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {

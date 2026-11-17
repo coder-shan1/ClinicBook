@@ -14,6 +14,8 @@ public record DoctorResponse(
         SpecialtyResponse specialty,
         String bio,
         BigDecimal consultationFee,
+        BigDecimal ratingAverage,
+        int ratingCount,
         boolean active,
         Instant createdAt) {
 
@@ -27,6 +29,8 @@ public record DoctorResponse(
                 SpecialtyResponse.from(doctor.getSpecialty()),
                 doctor.getBio(),
                 doctor.getConsultationFee(),
+                doctor.getRatingAverage(),
+                doctor.getRatingCount(),
                 doctor.isActive(),
                 doctor.getCreatedAt());
     }

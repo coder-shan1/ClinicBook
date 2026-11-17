@@ -34,9 +34,10 @@ Swagger UI: <http://localhost:8080/swagger-ui.html>
 mvn -B verify
 ```
 
-The suite includes unit tests, controller slices, and real MySQL/PostgreSQL search tests
-using Testcontainers. Database tests skip automatically when Docker is not available and
-run in CI (Docker is present on GitHub-hosted runners).
+The suite includes unit tests, controller slices, and real MySQL/PostgreSQL tests for
+search, booking concurrency, reminder idempotency and review rules using Testcontainers.
+Database tests skip automatically when Docker is not available and run in CI (Docker is
+present on GitHub-hosted runners).
 
 ## Auth
 
@@ -138,6 +139,76 @@ the runner never loads in tests or production.
 - Doctors only see and manage their own appointments; admins can manage any appointment
   and are exempt from the cancellation cutoff.
 
+## Notifications
+
+Email is best-effort and never blocks an appointment action. Booking, confirmation and
+cancellation events are published inside the appointment transaction and delivered
+*after* it commits; a broken SMTP server is logged and swallowed, so the booking still
+succeeds.
+
+| Event | Email | When |
+|---|---|---|
+| `POST /api/v1/appointments` | Booking received | Patient books a slot |
+| `PATCH /api/v1/appointments/{id}/confirm` | Appointment confirmed | Doctor or admin confirms |
+| `PATCH /api/v1/appointments/{id}/cancel` | Appointment cancelled | Patient, doctor or admin cancels |
+| Reminder job | Appointment reminder | Confirmed appointment starts within `REMINDER_LEAD` |
+
+- HTML templates live in `src/main/resources/templates/email/` and are rendered with
+  Thymeleaf. Times are formatted in the clinic timezone.
+- Every delivered email is recorded in `notification_log`. A unique
+  `(appointment_id, type)` index makes each email at-most-once per appointment, including
+  repeated or overlapping reminder runs.
+- The reminder job runs hourly (`REMINDER_CRON`, default `0 0 * * * *` in the clinic
+  timezone). It scans `CONFIRMED` appointments starting within `REMINDER_LEAD` (default
+  `24h`), locks each appointment, re-checks its status and window, and skips anything
+  already logged. One failure is logged and the run continues.
+- Local development uses **Mailpit** or **MailHog** on SMTP `localhost:1025` with a web
+  inbox at <http://localhost:8025>. Example:
+
+  ```bash
+  docker run --rm --name clinicbook-mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
+  ```
+
+  Set `NOTIFICATIONS_ENABLED=false` to disable all appointment email (tests do this).
+
+## Reviews
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/v1/reviews` | patient | Review a `COMPLETED` appointment once (`appointmentId`, `rating` 1–5, optional `comment`) |
+| GET | `/api/v1/doctors/{doctorId}/reviews` | public | List a doctor's reviews, newest first (`page`, `size`) |
+
+- Only the patient who owns the appointment may review it; other patients get
+  `404 APPOINTMENT_NOT_FOUND` so ownership is not revealed.
+- A review is accepted only when the appointment is `COMPLETED`
+  (`409 APPOINTMENT_NOT_COMPLETED`) and only once (`409 REVIEW_ALREADY_EXISTS`). The
+  unique `review.appointment_id` index is the final guard.
+- Creating a review updates `doctor.rating_average` and `doctor.rating_count` atomically
+  under a doctor-row lock. Doctor responses now expose `ratingAverage` and `ratingCount`.
+- Public review lists mask patient names (`Patient O.`).
+
+## Admin
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/v1/admin/stats` | admin | Bookings per day/specialty, status counts, cancellation rate, top doctors |
+| GET | `/api/v1/admin/users` | admin | List accounts (`role`, `q`, `page`, `size`) |
+| PATCH | `/api/v1/admin/users/{id}/status` | admin | Enable or disable an account |
+| PATCH | `/api/v1/admin/users/{id}/role` | admin | Change a non-doctor role |
+
+- Stats default to the last 30 days in the clinic timezone and are capped at 366 days.
+  `from`/`to` are ISO dates; `topDoctors` defaults to 5 and is capped at 20. Aggregation
+  happens in Java so MySQL and PostgreSQL return identical numbers.
+- `cancellationRate` is cancelled bookings divided by all bookings in the range, with
+  four decimal places (`0.2500` = 25%).
+- Safeguards: administrators cannot change their own role or status
+  (`409 SELF_MODIFICATION_NOT_ALLOWED`), the last enabled administrator cannot be
+  disabled or demoted (`409 LAST_ADMIN`), and doctor roles are managed through the doctor
+  endpoints (`409 DOCTOR_ROLE_MANAGED_SEPARATELY`).
+- Disabling an account revokes its refresh tokens; a role change also revokes tokens so
+  the next login picks up the new role. Disabling a doctor deactivates their public
+  profile.
+
 ## Configuration
 
 | Variable | Default (local) | Purpose |
@@ -159,6 +230,17 @@ the runner never loads in tests or production.
 | `SLOT_NIGHTLY_CRON` | `0 0 3 * * *` | Nightly slot-extension schedule (clinic timezone) |
 | `BOOKING_CANCEL_CUTOFF` | `2h` | How close to the start a patient may still cancel |
 | `BOOKING_MAX_ACTIVE_PER_PATIENT` | `3` | Maximum `PENDING` + `CONFIRMED` appointments per patient |
+| `MAIL_HOST` | `localhost` | SMTP host (Mailpit/MailHog locally) |
+| `MAIL_PORT` | `1025` | SMTP port |
+| `MAIL_USERNAME` | empty | SMTP username, if the server requires auth |
+| `MAIL_PASSWORD` | empty | SMTP password |
+| `MAIL_SMTP_AUTH` | `false` | Enable SMTP authentication |
+| `MAIL_STARTTLS` | `false` | Enable STARTTLS |
+| `MAIL_FROM` | `no-reply@clinicbook.local` | Sender address on appointment emails |
+| `NOTIFICATIONS_ENABLED` | `true` | Master switch for appointment email and the reminder job |
+| `CLINIC_NAME` | `ClinicBook` | Clinic name shown in email subjects and bodies |
+| `REMINDER_CRON` | `0 0 * * * *` | Reminder sweep schedule (clinic timezone) |
+| `REMINDER_LEAD` | `24h` | How far ahead of the start a reminder is sent |
 | `SEED_ENABLED` | `true` | Create fake local-profile demo data on startup |
 
 The local JWT key exists only so the `local` profile starts without setup. Never use it in

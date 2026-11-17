@@ -9,7 +9,9 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
@@ -29,5 +31,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     Page<Appointment> findAllByDoctorId(Long doctorId, Pageable pageable);
 
     long countByPatientIdAndStatusIn(Long patientId, Collection<AppointmentStatus> statuses);
+
+    @EntityGraph(attributePaths = {"patient", "doctor", "doctor.user", "doctor.specialty"})
+    List<Appointment> findAllByStartAtGreaterThanEqualAndStartAtLessThan(Instant from, Instant to);
+
+    /**
+     * Confirmed appointments starting inside the reminder window. The job re-checks the
+     * status and window after locking each row, so a long scan stays correct.
+     */
+    @Query("""
+            select a.id from Appointment a
+            where a.status = :status
+              and a.startAt > :from
+              and a.startAt <= :to
+            order by a.startAt
+            """)
+    List<Long> findReminderCandidates(@Param("status") AppointmentStatus status,
+                                      @Param("from") Instant from,
+                                      @Param("to") Instant to);
 }
 

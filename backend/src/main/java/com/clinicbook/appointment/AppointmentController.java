@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/v1/appointments")
+@RequestMapping(value = "/api/v1/appointments", produces = MediaType.APPLICATION_JSON_VALUE)
 @Tag(name = "Appointments", description = "Booking and appointment lifecycle")
 public class AppointmentController {
 
