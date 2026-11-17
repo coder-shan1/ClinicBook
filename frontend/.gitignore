@@ -21,8 +21,7 @@ npm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 
-# generated API client (regenerated from docs/api/openapi.json)
-src/api/generated/schema.ts
+# generated API contract is committed on purpose (see scripts/generate-api.mjs)
 
 # vite
 .vite
