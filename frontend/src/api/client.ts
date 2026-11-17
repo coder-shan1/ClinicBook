@@ -86,7 +86,8 @@ async function attemptRefresh(): Promise<string | null> {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiError>) => {
-    const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined
+    const original = error.config as
+      (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined
     const isAuthCall = original?.url?.includes('/auth/')
     if (error.response?.status === 401 && original && !original._retried && !isAuthCall) {
       original._retried = true
@@ -107,6 +108,11 @@ export function isApiError(e: unknown): e is AxiosError<ApiError> {
     typeof e.response?.data?.status === 'number' &&
     typeof e.response?.data?.error === 'string'
   )
+}
+
+/** Return the backend's stable error code (e.g. SLOT_TAKEN), when available. */
+export function getApiErrorCode(e: unknown): string | undefined {
+  return isApiError(e) ? e.response?.data.error : undefined
 }
 
 /**
