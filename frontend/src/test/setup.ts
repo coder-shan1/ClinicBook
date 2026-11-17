@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { server } from '../mocks/node'
+import { resetDb } from '../mocks/db'
 import { clearTokens } from '../api/client'
 
 // MSW intercepts network requests during tests so components can exercise the
@@ -11,5 +12,6 @@ afterEach(() => {
   cleanup()
   server.resetHandlers()
   clearTokens()
+  resetDb()
 })
 afterAll(() => server.close())

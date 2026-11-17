@@ -8,11 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import {
-  clearTokens,
-  getRefreshToken,
-  setTokens,
-} from '../../api/client'
+import { clearTokens, getRefreshToken, setTokens } from '../../api/client'
 import type { UserResponse, AuthResponse, LogoutRequest } from '../../api/types'
 import { logout as apiLogout, refreshTokens } from '../../api/endpoints'
 
@@ -36,7 +32,17 @@ const AuthContext = createContext<AuthContextValue | null>(null)
  *  expiresIn is 900 s (15 min); we refresh at 60 s before expiry = 840 s = 840_000 ms. */
 const REFRESH_BEFORE_MS = 60_000
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({
+  children,
+  initialUser,
+}: {
+  children: ReactNode
+  /**
+   * Test/storybook seam: pre-populate the signed-in user and skip the
+   * refresh-on-mount bootstrap. Leave undefined in production.
+   */
+  initialUser?: UserResponse | null
+}) {
   const [user, setUser] = useState<UserResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -91,8 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // On mount: attempt a silent refresh using the stored refresh token (if any).
-  // This re-hydrates the session after a page reload.
+  // This re-hydrates the session after a page reload. Tests and stories can pass
+  // `initialUser` to skip the bootstrap and start signed in.
   useEffect(() => {
+    if (initialUser !== undefined) {
+      setUser(initialUser)
+      setIsLoading(false)
+      return
+    }
     const rt = getRefreshToken()
     if (!rt) {
       setIsLoading(false)

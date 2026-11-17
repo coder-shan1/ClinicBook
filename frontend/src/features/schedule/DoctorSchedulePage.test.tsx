@@ -3,10 +3,11 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../../test/utils'
 import DoctorSchedulePage from '../../pages/DoctorSchedulePage'
+import { users } from '../../mocks/db'
 
 describe('DoctorSchedulePage', () => {
   it('renders weekly working hours and planned time off lists', async () => {
-    renderWithProviders(<DoctorSchedulePage />)
+    renderWithProviders(<DoctorSchedulePage />, { user: users[1] })
 
     expect(
       screen.getByRole('heading', { name: /doctor schedule & availability/i }),
@@ -24,7 +25,7 @@ describe('DoctorSchedulePage', () => {
 
   it('triggers slot regeneration and shows result message', async () => {
     const user = userEvent.setup()
-    renderWithProviders(<DoctorSchedulePage />)
+    renderWithProviders(<DoctorSchedulePage />, { user: users[1] })
 
     const regenBtn = await screen.findByRole('button', { name: /regenerate slots now/i })
     await user.click(regenBtn)
@@ -36,7 +37,7 @@ describe('DoctorSchedulePage', () => {
 
   it('adds and saves a new working hours shift', async () => {
     const user = userEvent.setup()
-    renderWithProviders(<DoctorSchedulePage />)
+    renderWithProviders(<DoctorSchedulePage />, { user: users[1] })
 
     const addShiftBtn = await screen.findByRole('button', { name: /\+ add shift/i })
     await user.click(addShiftBtn)
@@ -45,13 +46,15 @@ describe('DoctorSchedulePage', () => {
     await user.click(saveBtn)
 
     expect(
-      await screen.findByText(/working hours updated and appointment slots regenerated successfully/i),
+      await screen.findByText(
+        /working hours updated and appointment slots regenerated successfully/i,
+      ),
     ).toBeInTheDocument()
   })
 
   it('validates shift start time is before end time', async () => {
     const user = userEvent.setup()
-    renderWithProviders(<DoctorSchedulePage />)
+    renderWithProviders(<DoctorSchedulePage />, { user: users[1] })
 
     await screen.findByText('Weekly Working Hours')
 
@@ -63,14 +66,12 @@ describe('DoctorSchedulePage', () => {
     const saveBtn = await screen.findByRole('button', { name: /save working hours/i })
     await user.click(saveBtn)
 
-    expect(
-      await screen.findByRole('alert'),
-    ).toHaveTextContent(/at or after end time/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/at or after end time/i)
   })
 
   it('deletes a time off period', async () => {
     const user = userEvent.setup()
-    renderWithProviders(<DoctorSchedulePage />)
+    renderWithProviders(<DoctorSchedulePage />, { user: users[1] })
 
     expect(await screen.findByText('Holiday leave')).toBeInTheDocument()
 
