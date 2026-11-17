@@ -30,7 +30,20 @@ export default function Layout() {
               Doctors
             </NavLink>
 
-            {isAuthenticated && (
+            {isAuthenticated && user?.role === 'DOCTOR' && (
+              <NavLink
+                to="/doctor/schedule"
+                className={({ isActive }) =>
+                  isActive
+                    ? 'text-sm font-semibold text-slate-900'
+                    : 'text-sm text-slate-600 hover:text-slate-900'
+                }
+              >
+                Schedule
+              </NavLink>
+            )}
+
+            {isAuthenticated && user?.role !== 'ADMIN' && (
               <NavLink
                 to="/appointments"
                 className={({ isActive }) =>
