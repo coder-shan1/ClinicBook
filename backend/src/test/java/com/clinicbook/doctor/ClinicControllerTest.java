@@ -65,7 +65,8 @@ class ClinicControllerTest {
     private static final SpecialtyResponse CARDIOLOGY = new SpecialtyResponse(2L, "Cardiology", "Heart care");
     private static final DoctorResponse DOCTOR_RESPONSE = new DoctorResponse(
             1L, 7L, "Dr. Test", "doctor@example.com", "+91 90000 00001", CARDIOLOGY,
-            "Bio", new BigDecimal("800.00"), true, Instant.parse("2026-01-01T00:00:00Z"));
+            "Bio", new BigDecimal("800.00"), new BigDecimal("4.50"), 12, true,
+            Instant.parse("2026-01-01T00:00:00Z"));
 
     @Autowired
     private MockMvc mockMvc;
@@ -84,7 +85,8 @@ class ClinicControllerTest {
     @Test
     void publicSearchReturnsAPage() throws Exception {
         DoctorSummaryResponse summary = new DoctorSummaryResponse(
-                1L, "Dr. Test", CARDIOLOGY, "Bio", new BigDecimal("800.00"));
+                1L, "Dr. Test", CARDIOLOGY, "Bio", new BigDecimal("800.00"),
+                new BigDecimal("4.50"), 12);
         when(doctorService.search(eq(null), eq("heart"), eq(0), eq(20), eq("fullName,asc")))
                 .thenReturn(new PageResponse<>(List.of(summary), 0, 20, 1, 1, true));
 

@@ -25,6 +25,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -62,6 +63,8 @@ class AppointmentServiceTest {
     private UserRepository userRepository;
     @Mock
     private DoctorRepository doctorRepository;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private AppointmentService service;
     private User patient;
@@ -75,7 +78,8 @@ class AppointmentServiceTest {
                 userRepository,
                 doctorRepository,
                 new BookingProperties(CUTOFF, MAX_ACTIVE),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                eventPublisher);
         patient = user(1L, Role.PATIENT, "Patient One", "patient@example.com");
         doctor = doctor(7L, "Dr. Test", "doctor@example.com");
     }

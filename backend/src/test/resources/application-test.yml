@@ -4,3 +4,10 @@ app:
   clinic:
     zone: UTC
     slot-horizon-days: 30
+  notifications:
+    # Tests never talk to SMTP unless a test overrides this explicitly.
+    enabled: false
+    from: no-reply@clinicbook.test
+    clinic-name: ClinicBook Test
+    reminder-cron: "0 0 0 1 1 *"
+    reminder-lead: 24h
