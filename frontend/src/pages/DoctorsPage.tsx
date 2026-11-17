@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useDoctors, useSpecialties } from '../features/doctors/useDoctors'
 import { EmptyState, ErrorState, LoadingSpinner } from '../components/feedback'
+import { getErrorMessage } from '../api/client'
 
 export default function DoctorsPage() {
   const [q, setQ] = useState('')
@@ -44,7 +45,10 @@ export default function DoctorsPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+      >
         <div className="min-w-[14rem] flex-1">
           <label htmlFor="q" className="block text-sm font-medium text-slate-700">
             Search by name or keyword
@@ -125,12 +129,7 @@ export default function DoctorsPage() {
 
       {isLoading && <LoadingSpinner label="Loading doctors…" />}
 
-      {isError && (
-        <ErrorState
-          message={error instanceof Error ? error.message : 'Failed to load doctors.'}
-          onRetry={() => void refetch()}
-        />
-      )}
+      {isError && <ErrorState message={getErrorMessage(error)} onRetry={() => void refetch()} />}
 
       {!isLoading && !isError && data && (
         <>
@@ -156,7 +155,9 @@ export default function DoctorsPage() {
                     >
                       <div>
                         <div className="flex items-start justify-between gap-2">
-                          <h2 className="text-lg font-semibold text-slate-900">{doctor.fullName}</h2>
+                          <h2 className="text-lg font-semibold text-slate-900">
+                            {doctor.fullName}
+                          </h2>
                           <span className="inline-flex shrink-0 items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-700">
                             {doctor.specialty?.name}
                           </span>
