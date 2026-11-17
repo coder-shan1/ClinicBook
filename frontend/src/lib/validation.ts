@@ -18,12 +18,11 @@ const MAX_PASSWORD_BYTES = 72
 const LOCAL_PART = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/
 const DOMAIN_LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/
 const ALPHABETIC_TLD = /^[A-Za-z]{2,63}$/
-const FULL_NAME = /^(?=.*\p{L})[\p{L}\p{M} .'’\-]{1,120}$/u
+const FULL_NAME = /^(?=.*\p{L})[\p{L}\p{M} .'’-]{1,120}$/u
 const PHONE = /^(?=(?:[^0-9]*[0-9]){7,15}[^0-9]*$)\+?[0-9][0-9 ()-]{5,28}$/
 
 export const EMAIL_FORMAT_MESSAGE = 'Enter a valid email address, e.g. name@example.com'
-export const FULL_NAME_FORMAT_MESSAGE =
-  'Use letters, spaces, apostrophes, hyphens and periods only'
+export const FULL_NAME_FORMAT_MESSAGE = 'Use letters, spaces, apostrophes, hyphens and periods only'
 export const PHONE_FORMAT_MESSAGE = 'Enter a valid phone number (7–15 digits)'
 
 /** Trim and lowercase an email — the same normalisation the backend persists. */
