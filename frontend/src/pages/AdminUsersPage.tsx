@@ -105,7 +105,10 @@ export default function AdminUsersPage() {
         </Link>
       </div>
 
-      <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+      <div
+        role="note"
+        className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+      >
         The last enabled administrator cannot be disabled or demoted. Doctor accounts must be
         managed through the doctor endpoints, and you cannot change your own account here.
       </div>
@@ -113,6 +116,7 @@ export default function AdminUsersPage() {
       {actionError && (
         <div
           role="alert"
+          aria-atomic="true"
           className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
         >
           {actionError}
@@ -168,18 +172,34 @@ export default function AdminUsersPage() {
 
       {!users.isLoading && !users.isError && users.data && (
         <>
+          <p className="text-xs text-slate-600" aria-live="polite">
+            Showing {users.data.content.length} of {users.data.totalElements} accounts
+            {applied.q ? ` matching “${applied.q}”` : ''}
+            {applied.role ? ` with role ${applied.role}` : ''}.
+          </p>
           {users.data.content.length === 0 ? (
             <EmptyState message="No accounts match these filters." />
           ) : (
             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
               <table className="min-w-full text-left text-sm">
+                <caption className="sr-only">User accounts</caption>
                 <thead className="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-3 font-medium">User</th>
-                    <th className="px-4 py-3 font-medium">Role</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Joined</th>
-                    <th className="px-4 py-3 text-right font-medium">Actions</th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      User
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Role
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Status
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Joined
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-right font-medium">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -260,7 +280,10 @@ export default function AdminUsersPage() {
           )}
 
           {users.data.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-2">
+            <nav
+              aria-label="User pages"
+              className="flex flex-wrap items-center justify-center gap-2 pt-2"
+            >
               <button
                 type="button"
                 disabled={users.data.page === 0}
@@ -280,7 +303,7 @@ export default function AdminUsersPage() {
               >
                 Next
               </button>
-            </div>
+            </nav>
           )}
         </>
       )}

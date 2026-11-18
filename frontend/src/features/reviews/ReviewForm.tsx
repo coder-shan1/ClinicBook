@@ -123,7 +123,7 @@ export default function ReviewForm({
           placeholder="Share what went well or what could be better…"
           className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
         />
-        <p className="mt-1 text-right text-[11px] text-slate-400">
+        <p className="mt-1 text-right text-[11px] text-slate-500">
           {comment.length}/{MAX_COMMENT_LENGTH}
         </p>
       </div>

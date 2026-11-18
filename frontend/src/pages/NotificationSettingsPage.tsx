@@ -69,7 +69,12 @@ export default function NotificationSettingsPage() {
                 >
                   {option.title}
                 </label>
-                <p className="mt-0.5 text-xs text-slate-500">{option.description}</p>
+                <p
+                  id={`notification-${option.key}-description`}
+                  className="mt-0.5 text-xs text-slate-500"
+                >
+                  {option.description}
+                </p>
               </div>
               <label
                 htmlFor={`notification-${option.key}`}
@@ -81,6 +86,7 @@ export default function NotificationSettingsPage() {
                   role="switch"
                   checked={preferences[option.key]}
                   onChange={(event) => update(option.key, event.target.checked)}
+                  aria-describedby={`notification-${option.key}-description`}
                   className="peer sr-only"
                 />
                 <span

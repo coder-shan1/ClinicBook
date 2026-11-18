@@ -138,8 +138,8 @@ export default function DoctorsPage() {
             <EmptyState message="No doctors match your search criteria. Try adjusting your filters." />
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                <span aria-live="polite">
                   Showing {data.content.length} of {data.totalElements} doctors
                 </span>
                 <span>
@@ -192,7 +192,10 @@ export default function DoctorsPage() {
 
               {/* Pagination controls */}
               {data.totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
+                <nav
+                  aria-label="Doctor pages"
+                  className="flex flex-wrap items-center justify-center gap-2 pt-4"
+                >
                   <button
                     type="button"
                     disabled={data.page === 0}
@@ -212,7 +215,7 @@ export default function DoctorsPage() {
                   >
                     Next
                   </button>
-                </div>
+                </nav>
               )}
             </div>
           )}
