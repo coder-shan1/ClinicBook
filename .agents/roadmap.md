@@ -85,13 +85,13 @@ Branch: `feature/p3-booking`
 
 Branch: `feature/p4-extras`
 
-- [ ] 🟧 Email on booking/confirm/cancel (Spring Mail, HTML templates); use Mailpit/MailHog locally
-- [ ] 🟧 Reminder job: email 24h before appointment; idempotent via `notification_log`
-- [ ] 🟧 Reviews: only for `COMPLETED` appointments, one per appointment, average rating on doctor
-- [ ] 🟧 Admin stats endpoint: bookings per day, per specialty, cancellation rate, top doctors
-- [ ] 🟧 Admin user management (enable/disable, role change with safeguards)
-- [ ] 🟦 Frontend: admin dashboard with charts, review form, notification preferences stub
-- [ ] 🟧 Tests for reminder idempotency and review rules
+- [x] 🟧 Email on booking/confirm/cancel (Spring Mail, HTML templates); use Mailpit/MailHog locally
+- [x] 🟧 Reminder job: email 24h before appointment; idempotent via `notification_log`
+- [x] 🟧 Reviews: only for `COMPLETED` appointments, one per appointment, average rating on doctor
+- [x] 🟧 Admin stats endpoint: bookings per day, per specialty, cancellation rate, top doctors
+- [x] 🟧 Admin user management (enable/disable, role change with safeguards)
+- [x] 🟦 Frontend: admin dashboard with charts, review form, notification preferences stub
+- [x] 🟧 Tests for reminder idempotency and review rules
 
 **Exit:** Emails are sent in local dev (visible in Mailpit); admin dashboard shows real numbers.
 
