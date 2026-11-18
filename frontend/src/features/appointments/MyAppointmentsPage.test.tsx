@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { renderWithProviders } from '../../test/utils'
 import MyAppointmentsPage from '../../pages/MyAppointmentsPage'
 import { server } from '../../mocks/node'
-import { users } from '../../mocks/db'
+import { doctors, users } from '../../mocks/db'
 
 const patient = users[0]
 const doctor = users[1]
@@ -16,8 +16,8 @@ describe('MyAppointmentsPage', () => {
 
     expect(await screen.findByRole('heading', { name: /my appointments/i })).toBeInTheDocument()
     expect(await screen.findByText('PENDING')).toBeInTheDocument()
-    expect(screen.getByText('COMPLETED')).toBeInTheDocument()
-    expect(screen.getByText(/dr\. ada okonkwo/i)).toBeInTheDocument()
+    expect((await screen.findAllByText('COMPLETED')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText(/dr\. ada okonkwo/i)).length).toBeGreaterThan(0)
     expect(screen.getByText(/dr\. mateo silva/i)).toBeInTheDocument()
   })
 
@@ -83,8 +83,11 @@ describe('MyAppointmentsPage', () => {
     await user.click(await screen.findByRole('button', { name: /complete appointment 4/i }))
 
     await waitFor(() => {
-      expect(screen.getByText('COMPLETED')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: /complete appointment 4/i }),
+      ).not.toBeInTheDocument()
     })
+    expect((await screen.findAllByText('COMPLETED')).length).toBeGreaterThan(0)
   })
 
   it('lets a doctor record a no-show', async () => {
@@ -96,6 +99,54 @@ describe('MyAppointmentsPage', () => {
     await waitFor(() => {
       expect(screen.getByText('NO SHOW')).toBeInTheDocument()
     })
+  })
+
+  it('lets a patient review a completed appointment', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<MyAppointmentsPage />, { user: patient })
+
+    await user.click(
+      await screen.findByRole('button', { name: /leave a review for appointment 2/i }),
+    )
+    expect(screen.getByRole('form', { name: /review appointment 2/i })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '5 stars' }))
+    await user.type(screen.getByLabelText(/comment \(optional\)/i), 'Excellent care, thank you!')
+    await user.click(screen.getByRole('button', { name: /submit review/i }))
+
+    expect(await screen.findByText(/review submitted/i)).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /leave a review for appointment 2/i }),
+    ).not.toBeInTheDocument()
+
+    const doctor = doctors.find((candidate) => candidate.id === 2)
+    expect(doctor?.ratingCount).toBe(1)
+    expect(doctor?.ratingAverage).toBe(5)
+  })
+
+  it('explains when an appointment has already been reviewed (409)', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<MyAppointmentsPage />, { user: patient })
+
+    await user.click(
+      await screen.findByRole('button', { name: /leave a review for appointment 5/i }),
+    )
+    await user.click(screen.getByRole('button', { name: '4 stars' }))
+    await user.click(screen.getByRole('button', { name: /submit review/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/already reviewed/i)
+  })
+
+  it('requires a rating before submitting a review', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<MyAppointmentsPage />, { user: patient })
+
+    await user.click(
+      await screen.findByRole('button', { name: /leave a review for appointment 2/i }),
+    )
+    await user.click(screen.getByRole('button', { name: /submit review/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/choose a rating from 1 to 5/i)
   })
 
   it('tells admins that they do not have a personal appointment list', async () => {

@@ -1,6 +1,8 @@
 import type {
+  AdminUserResponse,
   AppointmentResponse,
   DoctorResponse,
+  ReviewResponse,
   SpecialtyResponse,
   TimeOffResponse,
   TimeSlotResponse,
@@ -23,102 +25,160 @@ export const specialties: SpecialtyResponse[] = [
   { id: 5, name: 'Neurology', description: 'Brain, spine and nerve disorders.' },
 ]
 
-export const doctors: DoctorResponse[] = [
-  {
-    id: 1,
-    userId: 2,
-    fullName: 'Dr. Ada Okonkwo',
-    email: 'doctor@example.com',
-    phone: '+91 90000 00001',
-    specialty: specialties[0],
-    bio: 'Board-certified cardiologist focused on preventive heart health.',
-    consultationFee: 120,
-    active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-  },
-  {
-    id: 2,
-    userId: 102,
-    fullName: 'Dr. Mateo Silva',
-    email: 'mateo.silva@example.com',
-    specialty: specialties[1],
-    bio: 'Dermatologist specialising in acne, eczema, and skin cancer screening.',
-    consultationFee: 95,
-    active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-  },
-  {
-    id: 3,
-    userId: 103,
-    fullName: 'Dr. Priya Nair',
-    email: 'priya.nair@example.com',
-    phone: '+91 90000 00003',
-    specialty: specialties[2],
-    bio: 'Pediatrician caring for newborns through adolescents.',
-    consultationFee: 80,
-    active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-  },
-  {
-    id: 4,
-    userId: 104,
-    fullName: 'Dr. Liam Walsh',
-    email: 'liam.walsh@example.com',
-    specialty: specialties[3],
-    bio: 'Family doctor for everyday health concerns and check-ups.',
-    consultationFee: 70,
-    active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-  },
-  {
-    id: 5,
-    userId: 105,
-    fullName: 'Dr. Sofia Ramos',
-    email: 'sofia.ramos@example.com',
-    specialty: specialties[4],
-    bio: 'Neurologist treating headaches, migraines, and nerve disorders.',
-    consultationFee: 150,
-    active: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-  },
-]
+function seedDoctors(): DoctorResponse[] {
+  return [
+    {
+      id: 1,
+      userId: 2,
+      fullName: 'Dr. Ada Okonkwo',
+      email: 'doctor@example.com',
+      phone: '+91 90000 00001',
+      specialty: specialties[0],
+      bio: 'Board-certified cardiologist focused on preventive heart health.',
+      consultationFee: 120,
+      ratingAverage: 4.67,
+      ratingCount: 3,
+      active: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    {
+      id: 2,
+      userId: 102,
+      fullName: 'Dr. Mateo Silva',
+      email: 'mateo.silva@example.com',
+      specialty: specialties[1],
+      bio: 'Dermatologist specialising in acne, eczema, and skin cancer screening.',
+      consultationFee: 95,
+      ratingCount: 0,
+      active: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    {
+      id: 3,
+      userId: 103,
+      fullName: 'Dr. Priya Nair',
+      email: 'priya.nair@example.com',
+      phone: '+91 90000 00003',
+      specialty: specialties[2],
+      bio: 'Pediatrician caring for newborns through adolescents.',
+      consultationFee: 80,
+      ratingCount: 0,
+      active: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    {
+      id: 4,
+      userId: 104,
+      fullName: 'Dr. Liam Walsh',
+      email: 'liam.walsh@example.com',
+      specialty: specialties[3],
+      bio: 'Family doctor for everyday health concerns and check-ups.',
+      consultationFee: 70,
+      ratingCount: 0,
+      active: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    {
+      id: 5,
+      userId: 105,
+      fullName: 'Dr. Sofia Ramos',
+      email: 'sofia.ramos@example.com',
+      specialty: specialties[4],
+      bio: 'Neurologist treating headaches, migraines, and nerve disorders.',
+      consultationFee: 150,
+      ratingCount: 0,
+      active: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+  ]
+}
 
-export const users: UserResponse[] = [
-  {
-    id: 1,
-    email: 'patient@example.com',
-    fullName: 'Sam Patient',
-    phone: '+91 90000 10001',
-    role: 'PATIENT',
-    enabled: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-  },
-  {
-    id: 2,
-    email: 'doctor@example.com',
-    fullName: 'Dr. Ada Okonkwo',
-    phone: '+91 90000 00001',
-    role: 'DOCTOR',
-    enabled: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-  },
-  {
-    id: 3,
-    email: 'admin@example.com',
-    fullName: 'Alex Admin',
-    role: 'ADMIN',
-    enabled: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-  },
-  {
-    id: 4,
-    email: 'riley.patient@example.com',
-    fullName: 'Riley Patient',
-    role: 'PATIENT',
-    enabled: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-  },
-]
+export const doctors: DoctorResponse[] = seedDoctors()
+
+function seedUsers(): UserResponse[] {
+  return [
+    {
+      id: 1,
+      email: 'patient@example.com',
+      fullName: 'Sam Patient',
+      phone: '+91 90000 10001',
+      role: 'PATIENT',
+      enabled: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    {
+      id: 2,
+      email: 'doctor@example.com',
+      fullName: 'Dr. Ada Okonkwo',
+      phone: '+91 90000 00001',
+      role: 'DOCTOR',
+      enabled: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    {
+      id: 3,
+      email: 'admin@example.com',
+      fullName: 'Alex Admin',
+      role: 'ADMIN',
+      enabled: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    {
+      id: 4,
+      email: 'riley.patient@example.com',
+      fullName: 'Riley Patient',
+      role: 'PATIENT',
+      enabled: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    {
+      id: 5,
+      email: 'jordan.patient@example.com',
+      fullName: 'Jordan Lee',
+      role: 'PATIENT',
+      enabled: true,
+      createdAt: '2025-01-02T00:00:00.000Z',
+    },
+    {
+      id: 6,
+      email: 'casey.admin@example.com',
+      fullName: 'Casey Admin',
+      role: 'ADMIN',
+      enabled: true,
+      createdAt: '2025-01-03T00:00:00.000Z',
+    },
+    {
+      id: 7,
+      email: 'morgan.patient@example.com',
+      fullName: 'Morgan Patel',
+      role: 'PATIENT',
+      enabled: true,
+      createdAt: '2025-01-04T00:00:00.000Z',
+    },
+  ]
+}
+
+export const users: UserResponse[] = seedUsers()
+
+export function toAdminUser(user: UserResponse): AdminUserResponse {
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    phone: user.phone,
+    role: user.role,
+    enabled: user.enabled,
+    createdAt: user.createdAt,
+  }
+}
+
+/** Mirrors ReviewResponse.maskName on the backend. */
+export function maskName(fullName: string): string {
+  if (!fullName || !fullName.trim()) return 'Patient'
+  const parts = fullName.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0]
+  return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`
+}
 
 /* -------------------------------------------------------------- Slots ------ */
 
@@ -193,15 +253,19 @@ export function generateSlots(doctorId: number, date = todayISO()): TimeSlotResp
 
 /* -------------------------------------------------- Schedule + time off ---- */
 
-export const workingHours: WorkingHoursResponse[] = (
-  ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'] as const
-).map((dayOfWeek, index) => ({
-  id: index + 1,
-  dayOfWeek,
-  startTime: '09:00:00',
-  endTime: '17:00:00',
-  slotMinutes: 30,
-}))
+function seedWorkingHours(): WorkingHoursResponse[] {
+  return (['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'] as const).map(
+    (dayOfWeek, index) => ({
+      id: index + 1,
+      dayOfWeek,
+      startTime: '09:00:00',
+      endTime: '17:00:00',
+      slotMinutes: 30,
+    }),
+  )
+}
+
+export const workingHours: WorkingHoursResponse[] = seedWorkingHours()
 
 function daysFromNow(days: number, hour = 9): Date {
   const date = new Date()
@@ -233,6 +297,9 @@ function seedAppointments(): AppointmentResponse[] {
   const history = daysFromNow(-3, 10)
   const doctorPending = daysFromNow(3, 11)
   const doctorConfirmed = daysFromNow(1, 15)
+  const reviewedRecent = daysFromNow(-10, 11)
+  const reviewedOlder = daysFromNow(-20, 14)
+  const reviewedBySam = daysFromNow(-30, 9)
   return [
     {
       id: 1,
@@ -286,74 +353,97 @@ function seedAppointments(): AppointmentResponse[] {
       createdAt: NOW,
       updatedAt: NOW,
     },
+    {
+      id: 5,
+      patientId: 1,
+      patientName: 'Sam Patient',
+      doctorId: 1,
+      doctorName: 'Dr. Ada Okonkwo',
+      startAt: reviewedBySam.toISOString(),
+      endAt: new Date(reviewedBySam.getTime() + 30 * 60 * 1000).toISOString(),
+      status: 'COMPLETED',
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+    {
+      id: 6,
+      patientId: 4,
+      patientName: 'Riley Patient',
+      doctorId: 1,
+      doctorName: 'Dr. Ada Okonkwo',
+      startAt: reviewedRecent.toISOString(),
+      endAt: new Date(reviewedRecent.getTime() + 30 * 60 * 1000).toISOString(),
+      status: 'COMPLETED',
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+    {
+      id: 7,
+      patientId: 4,
+      patientName: 'Riley Patient',
+      doctorId: 1,
+      doctorName: 'Dr. Ada Okonkwo',
+      startAt: reviewedOlder.toISOString(),
+      endAt: new Date(reviewedOlder.getTime() + 30 * 60 * 1000).toISOString(),
+      status: 'COMPLETED',
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
   ]
 }
 
 export const appointments: AppointmentResponse[] = seedAppointments()
 
+/* -------------------------------------------------------------- Reviews ---- */
+
+function seedReviews(): ReviewResponse[] {
+  return [
+    {
+      id: 1,
+      appointmentId: 5,
+      doctorId: 1,
+      patientName: 'Sam P.',
+      rating: 5,
+      comment: 'Dr. Okonkwo explained everything clearly and never rushed the appointment.',
+      createdAt: daysFromNow(-29, 12).toISOString(),
+    },
+    {
+      id: 2,
+      appointmentId: 6,
+      doctorId: 1,
+      patientName: 'Riley P.',
+      rating: 4,
+      comment: 'Thorough check-up and helpful follow-up advice.',
+      createdAt: daysFromNow(-9, 12).toISOString(),
+    },
+    {
+      id: 3,
+      appointmentId: 7,
+      doctorId: 1,
+      patientName: 'Riley P.',
+      rating: 5,
+      createdAt: daysFromNow(-19, 12).toISOString(),
+    },
+  ]
+}
+
+export const reviews: ReviewResponse[] = seedReviews()
+
 /** Reset mutable mock state between tests. */
 export function resetDb(): void {
   bookedSlots.clear()
-  const seeded = seedAppointments()
-  seeded.forEach((appointment) => {
+  const seededAppointments = seedAppointments()
+  seededAppointments.forEach((appointment) => {
     if (appointment.slotId) bookedSlots.add(appointment.slotId)
   })
-  appointments.splice(0, appointments.length, ...seeded)
+  appointments.splice(0, appointments.length, ...seededAppointments)
+  reviews.splice(0, reviews.length, ...seedReviews())
   timeOff.splice(0, timeOff.length, ...seedTimeOff())
+  workingHours.splice(0, workingHours.length, ...seedWorkingHours())
+  users.splice(0, users.length, ...seedUsers())
+  doctors.splice(0, doctors.length, ...seedDoctors())
 }
 
 seedAppointments().forEach((appointment) => {
   if (appointment.slotId) bookedSlots.add(appointment.slotId)
 })
-
-/* ------------------------------------------------- Forward-mock records ---- */
-
-export const reviews: Array<{
-  id: string
-  appointmentId: string
-  authorName: string
-  rating: number
-  comment: string
-  createdAt: string
-}> = []
-
-export const adminUsers = [
-  {
-    id: '1',
-    email: 'patient@example.com',
-    fullName: 'Sam Patient',
-    role: 'PATIENT' as const,
-    enabled: true,
-    createdAt: NOW,
-  },
-  {
-    id: '2',
-    email: 'doctor@example.com',
-    fullName: 'Dr. Ada Okonkwo',
-    role: 'DOCTOR' as const,
-    enabled: true,
-    createdAt: NOW,
-  },
-  {
-    id: '3',
-    email: 'admin@example.com',
-    fullName: 'Alex Admin',
-    role: 'ADMIN' as const,
-    enabled: true,
-    createdAt: NOW,
-  },
-]
-
-export const adminStats = {
-  bookingsPerDay: [
-    { date: daysFromNow(-2).toISOString(), count: 4 },
-    { date: daysFromNow(-1).toISOString(), count: 7 },
-    { date: daysFromNow(0).toISOString(), count: 3 },
-  ],
-  perSpecialty: [
-    { specialty: 'Cardiology', count: 9 },
-    { specialty: 'Dermatology', count: 5 },
-  ],
-  cancellationRate: 0.12,
-  topDoctors: [{ doctorId: '1', doctorName: 'Dr. Ada Okonkwo', count: 9 }],
-}

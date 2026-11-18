@@ -38,6 +38,15 @@ export type ApiErrorCode =
   | 'INVALID_APPOINTMENT_STATE'
   | 'CANCELLATION_WINDOW_CLOSED'
   | 'DOCTOR_PROFILE_NOT_FOUND'
+  | 'ACCOUNT_DISABLED'
+  | 'APPOINTMENT_NOT_COMPLETED'
+  | 'REVIEW_ALREADY_EXISTS'
+  | 'USER_NOT_FOUND'
+  | 'SELF_MODIFICATION_NOT_ALLOWED'
+  | 'LAST_ADMIN'
+  | 'DOCTOR_ROLE_MANAGED_SEPARATELY'
+  | 'INVALID_DATE_RANGE'
+  | 'DATE_RANGE_TOO_LARGE'
   | (string & {})
 
 /** ISO-8601 UTC strings as returned/sent at the API boundary. */
@@ -120,6 +129,9 @@ export interface DoctorSummaryResponse {
   specialty: SpecialtyResponse
   bio?: string
   consultationFee: number
+  /** Omitted until the doctor receives their first review. */
+  ratingAverage?: number
+  ratingCount: number
 }
 
 export interface DoctorResponse {
@@ -131,6 +143,9 @@ export interface DoctorResponse {
   specialty: SpecialtyResponse
   bio?: string
   consultationFee: number
+  /** Omitted until the doctor receives their first review. */
+  ratingAverage?: number
+  ratingCount: number
   active: boolean
   createdAt: IsoString
 }
@@ -244,40 +259,106 @@ export type TimeSlot = TimeSlotResponse
 export type SlotStatus = TimeSlotStatus
 export type AppointmentDTO = AppointmentResponse
 
-/* ---------------------------------------------------------- Forward mocks ---- */
-/* Endpoints that the backend has not implemented yet. These are served by MSW   */
-/* when mock mode is enabled (VITE_API_MOCKING=enabled).                          */
+/* ------------------------------------------------------ Phase 4: Reviews ---- */
 
-export interface ReviewDTO {
-  id: string
-  appointmentId: string
-  authorName: string
+export interface CreateReviewRequest {
+  appointmentId: number
+  /** Whole number from 1 to 5. */
   rating: number
-  comment: string
+  /** Omitted or empty when the patient leaves no comment. */
+  comment?: string
+}
+
+export interface ReviewResponse {
+  id: number
+  appointmentId: number
+  doctorId: number
+  /** Masked by the backend, e.g. "Sam P.". */
+  patientName: string
+  rating: number
+  comment?: string
   createdAt: IsoString
 }
 
-export interface CreateReviewRequest {
-  appointmentId: string
-  rating: number
-  comment: string
+/* -------------------------------------------------------- Phase 4: Admin ---- */
+
+export interface AdminStatsParams {
+  /** Clinic-local ISO date (YYYY-MM-DD). Defaults to 30 days ending today. */
+  from?: string
+  /** Clinic-local ISO date (YYYY-MM-DD). Defaults to today. */
+  to?: string
+  /** Number of top doctors to return (backend clamps to 1..20). */
+  topDoctors?: number
 }
 
-export interface AdminStats {
-  bookingsPerDay: Array<{ date: IsoString; count: number }>
-  perSpecialty: Array<{ specialty: string; count: number }>
+export interface DailyBookings {
+  date: string
+  bookings: number
+}
+
+export interface SpecialtyBookings {
+  specialtyId: number
+  specialtyName: string
+  bookings: number
+}
+
+export interface TopDoctor {
+  doctorId: number
+  doctorName: string
+  specialty: string
+  bookings: number
+  completed: number
+  ratingAverage?: number
+  ratingCount: number
+}
+
+export interface AdminStatsResponse {
+  from: string
+  to: string
+  totalBookings: number
+  pendingBookings: number
+  confirmedBookings: number
+  completedBookings: number
+  cancelledBookings: number
+  noShowBookings: number
+  /** Ratio between 0 and 1, rounded to four decimals. */
   cancellationRate: number
-  topDoctors: Array<{ doctorId: string; doctorName: string; count: number }>
+  bookingsPerDay: DailyBookings[]
+  bookingsPerSpecialty: SpecialtyBookings[]
+  topDoctors: TopDoctor[]
 }
 
-export interface AdminUser {
-  id: string
+export interface AdminUserSearchParams {
+  role?: Role
+  /** Case-insensitive match on email or full name. */
+  q?: string
+  page?: number
+  size?: number
+}
+
+export interface AdminUserResponse {
+  id: number
   email: string
   fullName: string
+  phone?: string
   role: Role
   enabled: boolean
   createdAt: IsoString
 }
+
+export interface UpdateUserStatusRequest {
+  enabled: boolean
+}
+
+export interface UpdateUserRoleRequest {
+  role: Role
+}
+
+/* --------------------------------------------------- Backwards-compatibility - */
+
+export type ReviewDTO = ReviewResponse
+export type AdminStats = AdminStatsResponse
+export type AdminUser = AdminUserResponse
 
 /**
  * Compile-time guard: these types must stay assignable to the generated contract.
@@ -289,8 +370,35 @@ export type _AppointmentContract = SpecAssignable<
   Schema['AppointmentResponse']
 >
 export type _DoctorContract = SpecAssignable<DoctorResponse, Schema['DoctorResponse']>
+export type _DoctorSummaryContract = SpecAssignable<
+  DoctorSummaryResponse,
+  Schema['DoctorSummaryResponse']
+>
 export type _SlotContract = SpecAssignable<TimeSlotResponse, Schema['TimeSlotResponse']>
 export type _PageContract = SpecAssignable<
   PageResponse<DoctorSummaryResponse>,
   Schema['PageResponseDoctorSummaryResponse']
+>
+export type _ReviewContract = SpecAssignable<ReviewResponse, Schema['ReviewResponse']>
+export type _CreateReviewContract = SpecAssignable<
+  CreateReviewRequest,
+  Schema['CreateReviewRequest']
+>
+export type _ReviewPageContract = SpecAssignable<
+  PageResponse<ReviewResponse>,
+  Schema['PageResponseReviewResponse']
+>
+export type _AdminStatsContract = SpecAssignable<AdminStatsResponse, Schema['AdminStatsResponse']>
+export type _AdminUserContract = SpecAssignable<AdminUserResponse, Schema['AdminUserResponse']>
+export type _AdminUserPageContract = SpecAssignable<
+  PageResponse<AdminUserResponse>,
+  Schema['PageResponseAdminUserResponse']
+>
+export type _UpdateUserStatusContract = SpecAssignable<
+  UpdateUserStatusRequest,
+  Schema['UpdateUserStatusRequest']
+>
+export type _UpdateUserRoleContract = SpecAssignable<
+  UpdateUserRoleRequest,
+  Schema['UpdateUserRoleRequest']
 >

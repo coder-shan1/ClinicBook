@@ -13,12 +13,15 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
           <NavLink to="/" className="text-lg font-semibold text-teal-700">
             ClinicBook
           </NavLink>
 
-          <nav aria-label="Primary" className="flex items-center gap-4">
+          <nav
+            aria-label="Primary"
+            className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2"
+          >
             <NavLink
               to="/doctors"
               className={({ isActive }) =>
@@ -29,6 +32,32 @@ export default function Layout() {
             >
               Doctors
             </NavLink>
+
+            {isAuthenticated && user?.role === 'ADMIN' && (
+              <>
+                <NavLink
+                  to="/admin"
+                  end
+                  className={({ isActive }) =>
+                    isActive
+                      ? 'text-sm font-semibold text-slate-900'
+                      : 'text-sm text-slate-600 hover:text-slate-900'
+                  }
+                >
+                  Dashboard
+                </NavLink>
+                <NavLink
+                  to="/admin/users"
+                  className={({ isActive }) =>
+                    isActive
+                      ? 'text-sm font-semibold text-slate-900'
+                      : 'text-sm text-slate-600 hover:text-slate-900'
+                  }
+                >
+                  Users
+                </NavLink>
+              </>
+            )}
 
             {isAuthenticated && user?.role === 'DOCTOR' && (
               <NavLink
@@ -53,6 +82,19 @@ export default function Layout() {
                 }
               >
                 Appointments
+              </NavLink>
+            )}
+
+            {isAuthenticated && (
+              <NavLink
+                to="/settings/notifications"
+                className={({ isActive }) =>
+                  isActive
+                    ? 'text-sm font-semibold text-slate-900'
+                    : 'text-sm text-slate-600 hover:text-slate-900'
+                }
+              >
+                Notifications
               </NavLink>
             )}
 

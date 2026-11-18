@@ -1,5 +1,6 @@
 import { http, HttpResponse, delay } from 'msw'
 import type {
+  AdminStatsResponse,
   ApiError,
   ApiErrorCode,
   AppointmentResponse,
@@ -15,23 +16,28 @@ import type {
   RefreshRequest,
   RegisterRequest,
   ReplaceWorkingHoursRequest,
+  ReviewResponse,
+  Role,
   TimeOffRequest,
   TimeSlotResponse,
+  UpdateUserRoleRequest,
+  UpdateUserStatusRequest,
   UserResponse,
 } from '../api/types'
 import {
-  adminStats,
-  adminUsers,
   appointments,
   doctors,
   generateSlots,
   isSlotBooked,
   markSlotBooked,
+  maskName,
   parseSlotId,
   releaseSlot,
   reviews,
   specialties,
   timeOff,
+  toAdminUser,
+  todayISO,
   users,
   workingHours,
 } from './db'
@@ -67,7 +73,8 @@ function currentUser(request: Request): UserResponse | null {
   const match = header?.match(/^Bearer mock-access-token-(\d+)$/)
   if (!match) return null
   const id = Number(match[1])
-  return users.find((user) => user.id === id) ?? null
+  const user = users.find((candidate) => candidate.id === id)
+  return user?.enabled ? user : null
 }
 
 function requireUser(request: Request) {
@@ -105,6 +112,8 @@ function toSummary(doctor: DoctorResponse): DoctorSummaryResponse {
     specialty: doctor.specialty,
     bio: doctor.bio,
     consultationFee: doctor.consultationFee,
+    ratingAverage: doctor.ratingAverage,
+    ratingCount: doctor.ratingCount,
   }
 }
 
@@ -179,6 +188,129 @@ function transition(
   return HttpResponse.json(appointment)
 }
 
+const ROLES: Role[] = ['PATIENT', 'DOCTOR', 'ADMIN']
+
+function dateKey(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
+function isValidDateKey(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(parsed.getTime()) && dateKey(parsed) === value
+}
+
+function addDays(date: string, days: number): string {
+  const value = new Date(`${date}T00:00:00.000Z`)
+  value.setUTCDate(value.getUTCDate() + days)
+  return dateKey(value)
+}
+
+function dayDiff(from: string, to: string): number {
+  return Math.round(
+    (Date.parse(`${to}T00:00:00.000Z`) - Date.parse(`${from}T00:00:00.000Z`)) / 86_400_000,
+  )
+}
+
+function enabledAdminCount(): number {
+  return users.filter((user) => user.role === 'ADMIN' && user.enabled).length
+}
+
+function buildAdminStats(from: string, to: string, topDoctorLimit: number): AdminStatsResponse {
+  const start = `${from}T00:00:00.000Z`
+  const endExclusive = `${addDays(to, 1)}T00:00:00.000Z`
+  const inRange = appointments.filter(
+    (appointment) => appointment.startAt >= start && appointment.startAt < endExclusive,
+  )
+
+  const statusCounts: Record<AppointmentStatus, number> = {
+    PENDING: 0,
+    CONFIRMED: 0,
+    COMPLETED: 0,
+    CANCELLED: 0,
+    NO_SHOW: 0,
+  }
+  const daily = new Map<string, number>()
+  for (let day = from; day <= to; day = addDays(day, 1)) {
+    daily.set(day, 0)
+  }
+  const specialtyTotals = new Map<
+    number,
+    { specialtyId: number; specialtyName: string; bookings: number }
+  >()
+  const doctorTotals = new Map<
+    number,
+    {
+      doctorId: number
+      doctorName: string
+      specialty: string
+      bookings: number
+      completed: number
+      ratingAverage?: number
+      ratingCount: number
+    }
+  >()
+
+  for (const appointment of inRange) {
+    statusCounts[appointment.status] += 1
+
+    const day = appointment.startAt.slice(0, 10)
+    if (daily.has(day)) daily.set(day, (daily.get(day) ?? 0) + 1)
+
+    const doctor = doctors.find((candidate) => candidate.id === appointment.doctorId)
+    if (!doctor) continue
+
+    const specialty = specialtyTotals.get(doctor.specialty.id) ?? {
+      specialtyId: doctor.specialty.id,
+      specialtyName: doctor.specialty.name,
+      bookings: 0,
+    }
+    specialty.bookings += 1
+    specialtyTotals.set(doctor.specialty.id, specialty)
+
+    const totals = doctorTotals.get(doctor.id) ?? {
+      doctorId: doctor.id,
+      doctorName: doctor.fullName,
+      specialty: doctor.specialty.name,
+      bookings: 0,
+      completed: 0,
+      ratingAverage: doctor.ratingAverage,
+      ratingCount: doctor.ratingCount,
+    }
+    totals.bookings += 1
+    if (appointment.status === 'COMPLETED') totals.completed += 1
+    doctorTotals.set(doctor.id, totals)
+  }
+
+  const totalBookings = inRange.length
+  const cancellationRate =
+    totalBookings === 0 ? 0 : Number((statusCounts.CANCELLED / totalBookings).toFixed(4))
+
+  return {
+    from,
+    to,
+    totalBookings,
+    pendingBookings: statusCounts.PENDING,
+    confirmedBookings: statusCounts.CONFIRMED,
+    completedBookings: statusCounts.COMPLETED,
+    cancelledBookings: statusCounts.CANCELLED,
+    noShowBookings: statusCounts.NO_SHOW,
+    cancellationRate,
+    bookingsPerDay: [...daily.entries()].map(([date, bookings]) => ({ date, bookings })),
+    bookingsPerSpecialty: [...specialtyTotals.values()].sort(
+      (a, b) => b.bookings - a.bookings || a.specialtyName.localeCompare(b.specialtyName),
+    ),
+    topDoctors: [...doctorTotals.values()]
+      .sort(
+        (a, b) =>
+          b.bookings - a.bookings ||
+          b.completed - a.completed ||
+          a.doctorName.localeCompare(b.doctorName),
+      )
+      .slice(0, topDoctorLimit),
+  }
+}
+
 export const handlers = [
   /* ---------------------------------------------------------------- Auth -- */
 
@@ -202,6 +334,9 @@ export const handlers = [
     }
 
     const matched = users.find((user) => user.email === body.email?.trim().toLowerCase())
+    if (matched && !matched.enabled) {
+      return errorResponse(403, 'ACCOUNT_DISABLED', 'This account is disabled', request)
+    }
     return HttpResponse.json(mockAuthResponse(matched ?? users[0]))
   }),
 
@@ -528,22 +663,253 @@ export const handlers = [
     return HttpResponse.json(appointment)
   }),
 
-  /* ---------------------------------------------------------------- Mock only -- */
+  /* -------------------------------------------------------------- Reviews -- */
+
+  http.get(`${BASE}/doctors/:doctorId/reviews`, async ({ request, params }) => {
+    await delay(LATENCY / 2)
+    const doctorId = Number(params.doctorId)
+    const doctor = doctors.find((candidate) => candidate.id === doctorId && candidate.active)
+    if (!doctor) return errorResponse(404, 'DOCTOR_NOT_FOUND', 'Doctor not found', request)
+
+    const url = new URL(request.url)
+    const page = Math.max(0, Number(url.searchParams.get('page') ?? '0'))
+    const size = Math.min(100, Math.max(1, Number(url.searchParams.get('size') ?? '10')))
+    const forDoctor = reviews
+      .filter((review) => review.doctorId === doctorId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+
+    return HttpResponse.json(paginate(forDoctor, page, size))
+  }),
 
   http.post(`${BASE}/reviews`, async ({ request }) => {
-    const body = (await request.json()) as CreateReviewRequest
-    const review = {
-      id: `review-${reviews.length + 1}`,
-      appointmentId: body.appointmentId,
-      authorName: users[0].fullName,
+    await delay(LATENCY)
+    const auth = requireRole(request, 'PATIENT')
+    if ('error' in auth) return auth.error
+
+    const body = (await request.json()) as CreateReviewRequest | null
+    if (
+      !body ||
+      !Number.isInteger(body.appointmentId) ||
+      !Number.isInteger(body.rating) ||
+      body.rating < 1 ||
+      body.rating > 5
+    ) {
+      return errorResponse(
+        400,
+        'VALIDATION_FAILED',
+        'appointmentId and a rating from 1 to 5 are required',
+        request,
+      )
+    }
+    if (body.comment !== undefined && typeof body.comment !== 'string') {
+      return errorResponse(400, 'VALIDATION_FAILED', 'comment must be a string', request)
+    }
+    if (typeof body.comment === 'string' && body.comment.length > 1000) {
+      return errorResponse(
+        400,
+        'VALIDATION_FAILED',
+        'comment must be at most 1000 characters',
+        request,
+      )
+    }
+
+    const appointment = appointments.find((item) => item.id === body.appointmentId)
+    if (!appointment || appointment.patientId !== auth.user.id) {
+      return errorResponse(404, 'APPOINTMENT_NOT_FOUND', 'Appointment not found', request)
+    }
+    if (appointment.status !== 'COMPLETED') {
+      return errorResponse(
+        409,
+        'APPOINTMENT_NOT_COMPLETED',
+        'Only completed appointments can be reviewed',
+        request,
+      )
+    }
+    if (reviews.some((review) => review.appointmentId === appointment.id)) {
+      return errorResponse(
+        409,
+        'REVIEW_ALREADY_EXISTS',
+        'This appointment has already been reviewed',
+        request,
+      )
+    }
+
+    const doctor = doctors.find((candidate) => candidate.id === appointment.doctorId)
+    if (!doctor) return errorResponse(404, 'DOCTOR_NOT_FOUND', 'Doctor not found', request)
+
+    const comment = body.comment?.trim() || undefined
+    const review: ReviewResponse = {
+      id: reviews.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      appointmentId: appointment.id,
+      doctorId: doctor.id,
+      patientName: maskName(auth.user.fullName),
       rating: body.rating,
-      comment: body.comment,
+      comment,
       createdAt: new Date().toISOString(),
     }
     reviews.push(review)
+
+    doctor.ratingAverage = Number(
+      (
+        ((doctor.ratingAverage ?? 0) * doctor.ratingCount + body.rating) /
+        (doctor.ratingCount + 1)
+      ).toFixed(2),
+    )
+    doctor.ratingCount += 1
+
     return HttpResponse.json(review, { status: 201 })
   }),
 
-  http.get(`${BASE}/admin/stats`, () => HttpResponse.json(adminStats)),
-  http.get(`${BASE}/admin/users`, () => HttpResponse.json(adminUsers)),
+  /* ---------------------------------------------------------------- Admin -- */
+
+  http.get(`${BASE}/admin/stats`, async ({ request }) => {
+    await delay(LATENCY / 2)
+    const auth = requireRole(request, 'ADMIN')
+    if ('error' in auth) return auth.error
+
+    const url = new URL(request.url)
+    const to = url.searchParams.get('to') ?? todayISO()
+    const from = url.searchParams.get('from') ?? addDays(to, -29)
+    const rawLimit = Number(url.searchParams.get('topDoctors') ?? '5')
+    const topDoctors = Math.min(20, Math.max(1, Number.isFinite(rawLimit) ? rawLimit : 5))
+
+    if (!isValidDateKey(from) || !isValidDateKey(to)) {
+      return errorResponse(400, 'VALIDATION_FAILED', 'Invalid date', request)
+    }
+    if (from > to) {
+      return errorResponse(
+        400,
+        'INVALID_DATE_RANGE',
+        'The start date must not be after the end date',
+        request,
+      )
+    }
+    if (dayDiff(from, to) > 365) {
+      return errorResponse(
+        400,
+        'DATE_RANGE_TOO_LARGE',
+        'The date range must not exceed 366 days',
+        request,
+      )
+    }
+
+    return HttpResponse.json(buildAdminStats(from, to, topDoctors))
+  }),
+
+  http.get(`${BASE}/admin/users`, async ({ request }) => {
+    await delay(LATENCY / 2)
+    const auth = requireRole(request, 'ADMIN')
+    if ('error' in auth) return auth.error
+
+    const url = new URL(request.url)
+    const roleParam = url.searchParams.get('role')
+    if (roleParam && !ROLES.includes(roleParam as Role)) {
+      return errorResponse(400, 'VALIDATION_FAILED', 'Invalid role', request)
+    }
+    const role = roleParam as Role | null
+    const q = url.searchParams.get('q')?.trim().toLowerCase() ?? ''
+    const page = Math.max(0, Number(url.searchParams.get('page') ?? '0'))
+    const size = Math.min(100, Math.max(1, Number(url.searchParams.get('size') ?? '20')))
+
+    const matched = users
+      .filter((user) => (role ? user.role === role : true))
+      .filter(
+        (user) =>
+          q === '' ||
+          user.email.toLowerCase().includes(q) ||
+          user.fullName.toLowerCase().includes(q),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id - a.id)
+      .map(toAdminUser)
+
+    return HttpResponse.json(paginate(matched, page, size))
+  }),
+
+  http.patch(`${BASE}/admin/users/:id/status`, async ({ request, params }) => {
+    const auth = requireRole(request, 'ADMIN')
+    if ('error' in auth) return auth.error
+
+    const id = Number(params.id)
+    if (id === auth.user.id) {
+      return errorResponse(
+        409,
+        'SELF_MODIFICATION_NOT_ALLOWED',
+        'Administrators cannot change their own role or status',
+        request,
+      )
+    }
+
+    const body = (await request.json()) as UpdateUserStatusRequest | null
+    if (!body || typeof body.enabled !== 'boolean') {
+      return errorResponse(400, 'VALIDATION_FAILED', 'enabled is required', request)
+    }
+
+    const target = users.find((candidate) => candidate.id === id)
+    if (!target) return errorResponse(404, 'USER_NOT_FOUND', 'User not found', request)
+
+    if (body.enabled) {
+      target.enabled = true
+      return HttpResponse.json(toAdminUser(target))
+    }
+
+    if (target.enabled && target.role === 'ADMIN' && enabledAdminCount() <= 1) {
+      return errorResponse(
+        409,
+        'LAST_ADMIN',
+        'The last enabled administrator cannot be disabled or demoted',
+        request,
+      )
+    }
+
+    target.enabled = false
+    if (target.role === 'DOCTOR') {
+      const doctor = doctors.find((candidate) => candidate.userId === target.id)
+      if (doctor) doctor.active = false
+    }
+    return HttpResponse.json(toAdminUser(target))
+  }),
+
+  http.patch(`${BASE}/admin/users/:id/role`, async ({ request, params }) => {
+    const auth = requireRole(request, 'ADMIN')
+    if ('error' in auth) return auth.error
+
+    const id = Number(params.id)
+    if (id === auth.user.id) {
+      return errorResponse(
+        409,
+        'SELF_MODIFICATION_NOT_ALLOWED',
+        'Administrators cannot change their own role or status',
+        request,
+      )
+    }
+
+    const body = (await request.json()) as UpdateUserRoleRequest | null
+    if (!body || !ROLES.includes(body.role)) {
+      return errorResponse(400, 'VALIDATION_FAILED', 'Invalid role', request)
+    }
+
+    const target = users.find((candidate) => candidate.id === id)
+    if (!target) return errorResponse(404, 'USER_NOT_FOUND', 'User not found', request)
+    if (target.role === body.role) return HttpResponse.json(toAdminUser(target))
+
+    if (target.role === 'DOCTOR' || body.role === 'DOCTOR') {
+      return errorResponse(
+        409,
+        'DOCTOR_ROLE_MANAGED_SEPARATELY',
+        'Doctor accounts are managed through the doctor endpoints',
+        request,
+      )
+    }
+    if (target.enabled && target.role === 'ADMIN' && enabledAdminCount() <= 1) {
+      return errorResponse(
+        409,
+        'LAST_ADMIN',
+        'The last enabled administrator cannot be disabled or demoted',
+        request,
+      )
+    }
+
+    target.role = body.role
+    return HttpResponse.json(toAdminUser(target))
+  }),
 ]
