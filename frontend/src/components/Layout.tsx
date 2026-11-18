@@ -1,9 +1,25 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
+import { titleForPath } from '../lib/pageTitle'
 
 export default function Layout() {
   const { isAuthenticated, user, signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const mainRef = useRef<HTMLElement>(null)
+  const isFirstRender = useRef(true)
+
+  // Update the title and move focus to the main region on client-side
+  // navigation so screen-reader and keyboard users are not stranded.
+  useEffect(() => {
+    document.title = titleForPath(location.pathname)
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    mainRef.current?.focus()
+  }, [location.pathname])
 
   async function handleSignOut() {
     await signOut()
@@ -12,15 +28,22 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-teal-700 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to main content
+      </a>
+
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
-          <NavLink to="/" className="text-lg font-semibold text-teal-700">
+        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <NavLink to="/" className="self-start text-lg font-semibold text-teal-700">
             ClinicBook
           </NavLink>
 
           <nav
             aria-label="Primary"
-            className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2"
+            className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 sm:w-auto sm:justify-end"
           >
             <NavLink
               to="/doctors"
@@ -100,7 +123,8 @@ export default function Layout() {
 
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3">
-                <span className="hidden text-sm text-slate-600 sm:block" aria-label="Logged in as">
+                <span className="hidden text-sm text-slate-600 sm:block">
+                  <span className="sr-only">Logged in as </span>
                   {user.fullName}
                 </span>
                 <span className="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
@@ -138,7 +162,13 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+      <main
+        id="main-content"
+        ref={mainRef}
+        tabIndex={-1}
+        aria-label="Main content"
+        className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 outline-none sm:py-8"
+      >
         <Outlet />
       </main>
 
