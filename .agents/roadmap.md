@@ -101,14 +101,14 @@ Branch: `feature/p4-extras`
 
 Branch: `chore/p5-quality`
 
-- [ ] 🟧 JaCoCo configured; ≥ 70% coverage on service layer
-- [ ] 🟧 Review all endpoints for authorization gaps (write a test per role per endpoint group)
-- [ ] 🟧 Add request-id logging, structured logs, and Actuator hardening
-- [ ] 🟧 Performance pass: N+1 queries, indexes, pagination everywhere
-- [ ] 🟦 Frontend: a11y pass, loading/empty/error states, responsive layout, 404 page
-- [ ] 🟦 Frontend tests for booking flow and error states
-- [ ] 👤 Cross-review: each tool reviews the other's code (use prompt "Code review" in `PROMPTS.md`)
-- [ ] 👤 Manual exploratory test with a written checklist in `docs/qa-checklist.md`
+- [x] 🟧 JaCoCo configured; ≥ 70% coverage on service layer
+- [x] 🟧 Review all endpoints for authorization gaps (write a test per role per endpoint group)
+- [x] 🟧 Add request-id logging, structured logs, and Actuator hardening
+- [x] 🟧 Performance pass: N+1 queries, indexes, pagination everywhere
+- [x] 🟦 Frontend: a11y pass, loading/empty/error states, responsive layout, 404 page
+- [x] 🟦 Frontend tests for booking flow and error states
+- [x] 👤 Cross-review: each tool reviews the other's code (use prompt "Code review" in `PROMPTS.md`)
+- [x] 👤 Manual exploratory test with a written checklist in `docs/qa-checklist.md`
 
 **Exit:** No known auth gaps, coverage target met, QA checklist passes.
 
