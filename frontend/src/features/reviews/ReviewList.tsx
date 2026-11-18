@@ -74,7 +74,7 @@ export default function ReviewList({
                         className="text-xs"
                       />
                     </div>
-                    <time dateTime={review.createdAt} className="text-xs text-slate-400">
+                    <time dateTime={review.createdAt} className="text-xs text-slate-500">
                       {formatReviewDate(review.createdAt)}
                     </time>
                   </div>
@@ -87,7 +87,10 @@ export default function ReviewList({
           )}
 
           {data.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-1">
+            <nav
+              aria-label="Review pages"
+              className="flex flex-wrap items-center justify-center gap-2 pt-1"
+            >
               <button
                 type="button"
                 disabled={data.page === 0}
@@ -107,7 +110,7 @@ export default function ReviewList({
               >
                 Next
               </button>
-            </div>
+            </nav>
           )}
         </>
       )}

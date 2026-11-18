@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import type { DoctorResponse, TimeSlotResponse } from '../../api/types'
 import { getApiErrorCode, getErrorMessage } from '../../api/client'
@@ -78,6 +78,17 @@ export default function BookingSection({ doctor }: { doctor: DoctorResponse }) {
   const [selectedDate, setSelectedDate] = useState(days[0].value)
   const [selectedSlot, setSelectedSlot] = useState<TimeSlotResponse | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
+  const noticeRef = useRef<HTMLDivElement>(null)
+  const confirmationRef = useRef<HTMLHeadingElement>(null)
+
+  // Move focus to the outcome so keyboard and screen-reader users hear it.
+  useEffect(() => {
+    if (notice) noticeRef.current?.focus()
+  }, [notice])
+
+  useEffect(() => {
+    if (selectedSlot) confirmationRef.current?.focus()
+  }, [selectedSlot])
 
   const slotsQuery = useDoctorSlots(doctor.id, selectedDate)
   const booking = useBookAppointment()
@@ -130,9 +141,11 @@ export default function BookingSection({ doctor }: { doctor: DoctorResponse }) {
   }
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-5" aria-labelledby="booking-heading">
       <div>
-        <h2 className="text-lg font-bold text-slate-900">Book an appointment</h2>
+        <h2 id="booking-heading" className="text-lg font-bold text-slate-900">
+          Book an appointment
+        </h2>
         <p className="text-sm text-slate-500">
           Pick a date, choose an available time, then confirm. Slot times are shown in UTC.
         </p>
@@ -155,8 +168,11 @@ export default function BookingSection({ doctor }: { doctor: DoctorResponse }) {
 
       {notice && (
         <div
+          ref={noticeRef}
+          tabIndex={-1}
           role={notice.tone === 'success' ? 'status' : 'alert'}
-          className={`rounded-md border p-4 text-sm ${TONE_CLASSES[notice.tone]}`}
+          aria-atomic="true"
+          className={`rounded-md border p-4 text-sm outline-none ${TONE_CLASSES[notice.tone]}`}
         >
           {notice.text}
           {notice.tone === 'success' && (
@@ -201,7 +217,7 @@ export default function BookingSection({ doctor }: { doctor: DoctorResponse }) {
       </div>
 
       {/* Time slots */}
-      <div className="space-y-3">
+      <div className="space-y-3" aria-busy={slotsQuery.isLoading}>
         <h3 className="text-sm font-semibold text-slate-700">
           Available times on {formatLongDate(selectedDate)}
         </h3>
@@ -230,7 +246,8 @@ export default function BookingSection({ doctor }: { doctor: DoctorResponse }) {
                   type="button"
                   disabled={isPast || !canBook || booking.isPending}
                   aria-pressed={isSelected}
-                  aria-label={`Book ${formatTime(slot.startAt)} to ${formatTime(slot.endAt)}`}
+                  aria-label={`${isPast ? 'Unavailable' : 'Book'} ${formatTime(slot.startAt)} to ${formatTime(slot.endAt)}${isPast ? ' (in the past)' : ''}`}
+                  title={isPast ? 'This time has already passed.' : undefined}
                   onClick={() => handleSelectSlot(slot)}
                   className={`rounded-md border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
                     isSelected
@@ -253,7 +270,13 @@ export default function BookingSection({ doctor }: { doctor: DoctorResponse }) {
       {/* Confirmation step */}
       {selectedSlot && (
         <div className="space-y-3 rounded-lg border border-teal-200 bg-teal-50/50 p-5">
-          <h3 className="text-base font-semibold text-slate-900">Confirm your booking</h3>
+          <h3
+            ref={confirmationRef}
+            tabIndex={-1}
+            className="text-base font-semibold text-slate-900 outline-none"
+          >
+            Confirm your booking
+          </h3>
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-slate-500">Doctor</dt>

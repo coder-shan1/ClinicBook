@@ -75,17 +75,29 @@ function DailyBookingsChart({ data }: { data: AdminStatsResponse['bookingsPerDay
           )
         })}
       </div>
-      <div className="mt-2 flex justify-between text-[11px] text-slate-400">
+      <div className="mt-2 flex justify-between text-[11px] text-slate-500">
         <span>{first}</span>
         <span>{last}</span>
       </div>
-      <ul className="sr-only">
-        {data.map((day) => (
-          <li key={day.date}>
-            {day.date}: {day.bookings} bookings
-          </li>
-        ))}
-      </ul>
+      <table className="sr-only">
+        <caption>
+          Bookings per day from {first ?? 'start'} to {last ?? 'end'}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Bookings</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((day) => (
+            <tr key={day.date}>
+              <th scope="row">{day.date}</th>
+              <td>{day.bookings}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -218,6 +230,7 @@ export default function AdminDashboardPage() {
       {rangeError && (
         <div
           role="alert"
+          aria-atomic="true"
           className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
         >
           {rangeError}
@@ -279,20 +292,35 @@ export default function AdminDashboardPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
+                  <caption className="sr-only">
+                    Top doctors ranked by bookings and completed visits
+                  </caption>
                   <thead className="text-xs uppercase tracking-wide text-slate-500">
                     <tr>
-                      <th className="py-2 pr-4 font-medium">#</th>
-                      <th className="py-2 pr-4 font-medium">Doctor</th>
-                      <th className="py-2 pr-4 font-medium">Specialty</th>
-                      <th className="py-2 pr-4 font-medium">Bookings</th>
-                      <th className="py-2 pr-4 font-medium">Completed</th>
-                      <th className="py-2 font-medium">Rating</th>
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        #
+                      </th>
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        Doctor
+                      </th>
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        Specialty
+                      </th>
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        Bookings
+                      </th>
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        Completed
+                      </th>
+                      <th scope="col" className="py-2 font-medium">
+                        Rating
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {stats.data.topDoctors.map((doctor, index) => (
                       <tr key={doctor.doctorId}>
-                        <td className="py-2 pr-4 text-slate-400">{index + 1}</td>
+                        <td className="py-2 pr-4 text-slate-500">{index + 1}</td>
                         <td className="py-2 pr-4 font-medium text-slate-900">
                           {doctor.doctorName}
                         </td>
@@ -306,7 +334,7 @@ export default function AdminDashboardPage() {
                               {(doctor.ratingAverage ?? 0).toFixed(1)} ({doctor.ratingCount})
                             </span>
                           ) : (
-                            <span className="text-xs text-slate-400">No reviews</span>
+                            <span className="text-xs text-slate-500">No reviews</span>
                           )}
                         </td>
                       </tr>

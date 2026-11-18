@@ -109,6 +109,7 @@ export default function MyAppointmentsPage() {
       {actionError && (
         <div
           role="alert"
+          aria-atomic="true"
           className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
         >
           {actionError}
@@ -140,7 +141,7 @@ export default function MyAppointmentsPage() {
               }
             />
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-3" aria-busy={busy}>
               {data.content.map((appointment) => (
                 <AppointmentCard
                   key={appointment.id}
@@ -170,7 +171,10 @@ export default function MyAppointmentsPage() {
           )}
 
           {data.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-2">
+            <nav
+              aria-label="Appointment pages"
+              className="flex flex-wrap items-center justify-center gap-2 pt-2"
+            >
               <button
                 type="button"
                 disabled={data.page === 0}
@@ -190,7 +194,7 @@ export default function MyAppointmentsPage() {
               >
                 Next
               </button>
-            </div>
+            </nav>
           )}
         </>
       )}
@@ -241,6 +245,7 @@ function AppointmentCard({
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[appointment.status]}`}
             >
+              <span className="sr-only">Status: </span>
               {appointment.status.replace('_', ' ')}
             </span>
             <span className="text-sm font-semibold text-slate-900">
@@ -259,7 +264,7 @@ function AppointmentCard({
               </>
             )}
           </p>
-          <p className="text-xs text-slate-400">Appointment #{appointment.id}</p>
+          <p className="text-xs text-slate-500">Appointment #{appointment.id}</p>
         </div>
 
         {active && (
