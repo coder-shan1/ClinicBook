@@ -1,7 +1,9 @@
 import { apiClient } from './client'
 import type {
-  AdminStats,
-  AdminUser,
+  AdminStatsParams,
+  AdminStatsResponse,
+  AdminUserResponse,
+  AdminUserSearchParams,
   AppointmentResponse,
   AuthResponse,
   CreateAppointmentRequest,
@@ -15,13 +17,15 @@ import type {
   RefreshRequest,
   RegisterRequest,
   ReplaceWorkingHoursRequest,
-  ReviewDTO,
+  ReviewResponse,
   SlotGenerationResponse,
   SpecialtyResponse,
   TimeOffRequest,
   TimeOffResponse,
   TimeSlotResponse,
   UpdateDoctorProfileRequest,
+  UpdateUserRoleRequest,
+  UpdateUserStatusRequest,
   UserResponse,
   WorkingHoursResponse,
 } from './types'
@@ -182,19 +186,53 @@ export function regenerateSlots(): Promise<SlotGenerationResponse> {
 }
 
 /* --------------------------------------------------------------- Reviews -- */
-/* The backend has no review endpoints yet; MSW serves these in mock mode.     */
 
-export function createReview(payload: CreateReviewRequest): Promise<ReviewDTO> {
-  return apiClient.post<ReviewDTO>('/reviews', payload).then((r) => r.data)
+/** POST /api/v1/reviews — patients review a COMPLETED appointment once. */
+export function createReview(payload: CreateReviewRequest): Promise<ReviewResponse> {
+  return apiClient.post<ReviewResponse>('/reviews', payload).then((r) => r.data)
+}
+
+/** GET /api/v1/doctors/{doctorId}/reviews — public, newest first. */
+export function listDoctorReviews(
+  doctorId: number | string,
+  page = 0,
+  size = 10,
+): Promise<PageResponse<ReviewResponse>> {
+  return apiClient
+    .get<PageResponse<ReviewResponse>>(`/doctors/${doctorId}/reviews`, { params: { page, size } })
+    .then((r) => r.data)
 }
 
 /* ----------------------------------------------------------------- Admin -- */
-/* The backend has no admin dashboard endpoints yet; MSW serves these in mock mode. */
 
-export function getAdminStats(): Promise<AdminStats> {
-  return apiClient.get<AdminStats>('/admin/stats').then((r) => r.data)
+/** GET /api/v1/admin/stats — aggregated appointment statistics (admin only). */
+export function getAdminStats(params: AdminStatsParams = {}): Promise<AdminStatsResponse> {
+  return apiClient.get<AdminStatsResponse>('/admin/stats', { params }).then((r) => r.data)
 }
 
-export function getAdminUsers(): Promise<AdminUser[]> {
-  return apiClient.get<AdminUser[]>('/admin/users').then((r) => r.data)
+/** GET /api/v1/admin/users — paginated account list with role/search filters. */
+export function getAdminUsers(
+  params: AdminUserSearchParams = {},
+): Promise<PageResponse<AdminUserResponse>> {
+  return apiClient
+    .get<PageResponse<AdminUserResponse>>('/admin/users', { params })
+    .then((r) => r.data)
+}
+
+/** PATCH /api/v1/admin/users/{id}/status — enable or disable an account. */
+export function updateAdminUserStatus(
+  id: number,
+  payload: UpdateUserStatusRequest,
+): Promise<AdminUserResponse> {
+  return apiClient
+    .patch<AdminUserResponse>(`/admin/users/${id}/status`, payload)
+    .then((r) => r.data)
+}
+
+/** PATCH /api/v1/admin/users/{id}/role — change a non-doctor account role. */
+export function updateAdminUserRole(
+  id: number,
+  payload: UpdateUserRoleRequest,
+): Promise<AdminUserResponse> {
+  return apiClient.patch<AdminUserResponse>(`/admin/users/${id}/role`, payload).then((r) => r.data)
 }

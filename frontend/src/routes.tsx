@@ -8,6 +8,9 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import MyAppointmentsPage from './pages/MyAppointmentsPage'
 import DoctorSchedulePage from './pages/DoctorSchedulePage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
+import AdminUsersPage from './pages/AdminUsersPage'
+import NotificationSettingsPage from './pages/NotificationSettingsPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export function AppRoutes() {
@@ -36,6 +39,33 @@ export function AppRoutes() {
           element={
             <ProtectedRoute roles={['DOCTOR']}>
               <DoctorSchedulePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={['ADMIN']}>
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute roles={['ADMIN']}>
+              <AdminUsersPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationSettingsPage />
             </ProtectedRoute>
           }
         />

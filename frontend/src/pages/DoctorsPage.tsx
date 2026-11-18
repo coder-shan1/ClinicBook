@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useDoctors, useSpecialties } from '../features/doctors/useDoctors'
 import { EmptyState, ErrorState, LoadingSpinner } from '../components/feedback'
+import StarRating from '../components/StarRating'
 import { getErrorMessage } from '../api/client'
 
 export default function DoctorsPage() {
@@ -165,6 +166,14 @@ export default function DoctorsPage() {
                         {doctor.bio && (
                           <p className="mt-2 text-sm text-slate-600 line-clamp-2">{doctor.bio}</p>
                         )}
+                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+                          <StarRating value={doctor.ratingAverage} className="text-xs" />
+                          <span>
+                            {doctor.ratingCount > 0
+                              ? `${(doctor.ratingAverage ?? 0).toFixed(1)} (${doctor.ratingCount})`
+                              : 'No reviews yet'}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">

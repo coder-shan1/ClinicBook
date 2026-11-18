@@ -1,8 +1,10 @@
 import { Link, useParams } from 'react-router-dom'
 import { useDoctor } from '../features/doctors/useDoctors'
 import { ErrorState, LoadingSpinner } from '../components/feedback'
+import StarRating from '../components/StarRating'
 import { getErrorMessage } from '../api/client'
 import BookingSection from '../features/appointments/BookingSection'
+import ReviewList from '../features/reviews/ReviewList'
 
 export default function DoctorDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -58,6 +60,17 @@ export default function DoctorDetailPage() {
               <p className="mt-1 text-xs text-slate-500">{doctor.specialty.description}</p>
             )}
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-700">{doctor.bio}</p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <StarRating value={doctor.ratingAverage} />
+              <span className="font-medium text-slate-800">
+                {doctor.ratingCount > 0
+                  ? `${(doctor.ratingAverage ?? 0).toFixed(1)} · ${doctor.ratingCount} ${
+                      doctor.ratingCount === 1 ? 'review' : 'reviews'
+                    }`
+                  : 'No reviews yet'}
+              </span>
+            </div>
           </div>
 
           <div className="rounded-md border border-slate-100 bg-slate-50 p-4 text-center sm:min-w-[10rem]">
@@ -89,6 +102,15 @@ export default function DoctorDetailPage() {
 
       <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <BookingSection doctor={doctor} />
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <ReviewList
+          key={doctor.id}
+          doctorId={doctor.id}
+          ratingAverage={doctor.ratingAverage}
+          ratingCount={doctor.ratingCount}
+        />
       </div>
     </div>
   )

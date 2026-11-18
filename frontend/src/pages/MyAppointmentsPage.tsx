@@ -11,6 +11,7 @@ import {
   useMyAppointments,
 } from '../features/appointments/useAppointments'
 import { EmptyState, ErrorState, LoadingSpinner } from '../components/feedback'
+import ReviewForm from '../features/reviews/ReviewForm'
 
 const PAGE_SIZE = 20
 const CANCELLATION_CUTOFF_MS = 2 * 60 * 60 * 1000
@@ -56,6 +57,8 @@ export default function MyAppointmentsPage() {
   const { user } = useAuth()
   const [page, setPage] = useState(0)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [reviewingId, setReviewingId] = useState<number | null>(null)
+  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set())
 
   const { data, isLoading, isError, error, refetch } = useMyAppointments(
     page,
@@ -149,6 +152,18 @@ export default function MyAppointmentsPage() {
                   onConfirm={() => runAction('confirm', appointment.id)}
                   onComplete={() => runAction('complete', appointment.id)}
                   onNoShow={() => runAction('noShow', appointment.id)}
+                  canReview={isPatient}
+                  reviewed={reviewedIds.has(appointment.id)}
+                  reviewing={reviewingId === appointment.id}
+                  onStartReview={() => {
+                    setActionError(null)
+                    setReviewingId(appointment.id)
+                  }}
+                  onReviewCancel={() => setReviewingId(null)}
+                  onReviewSuccess={() => {
+                    setReviewedIds((current) => new Set(current).add(appointment.id))
+                    setReviewingId(null)
+                  }}
                 />
               ))}
             </ul>
@@ -192,6 +207,12 @@ function AppointmentCard({
   onConfirm,
   onComplete,
   onNoShow,
+  canReview,
+  reviewed,
+  reviewing,
+  onStartReview,
+  onReviewCancel,
+  onReviewSuccess,
 }: {
   appointment: AppointmentResponse
   isPatient: boolean
@@ -201,6 +222,12 @@ function AppointmentCard({
   onConfirm: () => void
   onComplete: () => void
   onNoShow: () => void
+  canReview: boolean
+  reviewed: boolean
+  reviewing: boolean
+  onStartReview: () => void
+  onReviewCancel: () => void
+  onReviewSuccess: () => void
 }) {
   const active = isActive(appointment.status)
   const withinCutoff =
@@ -289,6 +316,32 @@ function AppointmentCard({
           </div>
         )}
       </div>
+
+      {canReview && appointment.status === 'COMPLETED' && (
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          {reviewing ? (
+            <ReviewForm
+              appointmentId={appointment.id}
+              doctorName={appointment.doctorName}
+              onSuccess={onReviewSuccess}
+              onCancel={onReviewCancel}
+            />
+          ) : reviewed ? (
+            <p role="status" className="text-xs font-medium text-emerald-700">
+              Review submitted — thank you for your feedback.
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={onStartReview}
+              aria-label={`Leave a review for appointment ${appointment.id}`}
+              className="rounded-md border border-teal-300 bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50"
+            >
+              Leave a review
+            </button>
+          )}
+        </div>
+      )}
     </li>
   )
 }

@@ -29,6 +29,9 @@ Mock accounts (password is any value, e.g. `pass`):
 | `doctor@example.com`  | DOCTOR  |
 | `admin@example.com`   | ADMIN   |
 
+Mock mode also simulates the Phase 4 review and admin endpoints, including the
+one-review-per-appointment rule and the administrator safeguards.
+
 ## Features
 
 - Doctor search with specialty filter, sorting and pagination
@@ -38,6 +41,17 @@ Mock accounts (password is any value, e.g. `pass`):
 - “My appointments” for patients (cancel, 2-hour cutoff) and the doctor’s list
   (confirm / complete / no-show)
 - Doctor schedule editor: weekly working hours, time off and slot regeneration
+- Reviews: patients rate completed visits (1–5 stars + optional comment); the
+  doctor’s average rating and review list update immediately. One review per
+  appointment is enforced by the backend
+- Admin dashboard: bookings per day, bookings per specialty, cancellation rate,
+  status totals and top doctors with their ratings
+- Admin user management: search/filter accounts, enable/disable, and change
+  patient/administrator roles. Self-modification, the last administrator and
+  doctor-role changes are blocked by the backend
+- Notification preferences stub: booking, confirmation, cancellation and
+  reminder toggles are saved in this browser only (the backend already sends the
+  emails; per-user preferences are not stored yet)
 - Role-aware navigation and protected routes
 
 ## Scripts
@@ -95,3 +109,11 @@ contract changes.
 - Lifecycle rules: `PENDING -> CONFIRMED|CANCELLED`,
   `CONFIRMED -> COMPLETED|CANCELLED|NO_SHOW`; terminal states never move. Patients are
   bound by a 2-hour cancellation cutoff and a maximum of 3 active bookings.
+- Review rules: only `COMPLETED` appointments can be reviewed, exactly once.
+  `APPOINTMENT_NOT_COMPLETED` and `REVIEW_ALREADY_EXISTS` (409) are shown as
+  friendly messages.
+- Booking, confirmation and cancellation emails are sent by the backend, and a
+  scheduled job sends one 24-hour reminder per confirmed appointment using
+  `notification_log` for idempotency. The UI does not expose an email log.
+- Admin safeguards (`SELF_MODIFICATION_NOT_ALLOWED`, `LAST_ADMIN`,
+  `DOCTOR_ROLE_MANAGED_SEPARATELY`) are surfaced as readable errors.
