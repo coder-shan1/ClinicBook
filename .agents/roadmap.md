@@ -66,16 +66,16 @@ Tag after merge to `main` later: none yet.
 
 Branch: `feature/p3-booking`
 
-- [ ] 🟧 Migration: `appointment` (both dialects)
-- [ ] 🟧 `AppointmentService.book()` — transactional, optimistic lock on `TimeSlot`, 409 `SLOT_TAKEN` on conflict
-- [ ] 🟧 Cancel / confirm / complete / no-show with state-machine validation and role rules
-- [ ] 🟧 Cancel returns slot to `AVAILABLE`, detaches `slot_id`, keeps history
-- [ ] 🟧 Rules: no booking in the past, cutoff for cancellations, max active bookings per patient
-- [ ] 🟧 **Concurrency integration test** (20 threads, 1 slot → exactly 1 success) on MySQL and Postgres
-- [ ] 🟧 Unit tests for every status transition (allowed and forbidden)
-- [ ] 🟦 Spec in `docs/specs/booking/` (requirements, design, tasks)
-- [ ] 🟦 Frontend: slot picker (calendar + times), booking confirmation, "My appointments" with cancel, doctor's appointment list with confirm/complete
-- [ ] 🟦 Frontend handling of 409 (slot just taken → refresh slots, friendly message)
+- [x] 🟧 Migration: `appointment` (both dialects)
+- [x] 🟧 `AppointmentService.book()` — transactional, optimistic lock on `TimeSlot`, 409 `SLOT_TAKEN` on conflict
+- [x] 🟧 Cancel / confirm / complete / no-show with state-machine validation and role rules
+- [x] 🟧 Cancel returns slot to `AVAILABLE`, detaches `slot_id`, keeps history
+- [x] 🟧 Rules: no booking in the past, cutoff for cancellations, max active bookings per patient
+- [x] 🟧 **Concurrency integration test** (20 threads, 1 slot → exactly 1 success) on MySQL and Postgres
+- [x] 🟧 Unit tests for every status transition (allowed and forbidden)
+- [x] 🟦 Spec in `docs/specs/booking/` (requirements, design, tasks)
+- [x] 🟦 Frontend: slot picker (calendar + times), booking confirmation, "My appointments" with cancel, doctor's appointment list with confirm/complete
+- [x] 🟦 Frontend handling of 409 (slot just taken → refresh slots, friendly message)
 
 **Exit:** Concurrency test is green on both DBs. End-to-end flow works in the browser. Tag `v0.1.0` on release PR.
 
