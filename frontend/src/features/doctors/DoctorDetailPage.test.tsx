@@ -44,6 +44,15 @@ describe('DoctorDetailPage', () => {
     expect(await screen.findByText('09:00')).toBeInTheDocument()
   })
 
+  it('shows the doctor rating and patient reviews', async () => {
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: /patient reviews/i })).toBeInTheDocument()
+    expect(await screen.findByText('Sam P.')).toBeInTheDocument()
+    expect(screen.getByText(/dr\. okonkwo explained everything clearly/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/4\.7 out of 5/i).length).toBeGreaterThan(0)
+  })
+
   it('asks anonymous visitors to log in before booking', async () => {
     renderPage(null)
 
