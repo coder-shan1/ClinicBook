@@ -36,9 +36,15 @@ describe('LoginPage', () => {
       },
     }
 
+    // Hold the response open until the pending state has been asserted, so the
+    // test cannot race a fast mock under full-suite load.
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
     server.use(
       http.post('/api/v1/auth/login', async () => {
-        await delay(50)
+        await gate
         return HttpResponse.json(mockAuth)
       }),
     )
@@ -51,6 +57,11 @@ describe('LoginPage', () => {
 
     // The button should show pending state
     expect(await screen.findByRole('button', { name: /logging in/i })).toBeInTheDocument()
+
+    release()
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /logging in/i })).not.toBeInTheDocument()
+    })
   })
 
   it('shows error alert on wrong password (INVALID_CREDENTIALS)', async () => {
