@@ -97,6 +97,28 @@ checks that they stay assignable to the generated contract. `src/api/endpoints.t
 the typed client the UI calls. Re-run `npm run generate-api` whenever the backend
 contract changes.
 
+## Quality checks
+
+```sh
+npm run typecheck
+npm run lint
+npm run test:run
+npm run build
+```
+
+The Phase 5 manual exploratory checklist (frontend scope) lives at
+[`../docs/qa-checklist.md`](../docs/qa-checklist.md). It covers booking, error and
+empty states, responsive layouts, admin flows and accessibility.
+
+Accessibility and resilience built into the shell:
+
+- Skip link, focus moved to main content after client-side navigation, and a
+  route-specific document title.
+- Visible `:focus-visible` ring, reduced-motion support, labelled loading/error
+  states, and captions/headers on data tables.
+- An error boundary with retry for unexpected render failures and a dedicated
+  404 page for unknown routes.
+
 ## Notes
 
 - Access token is kept in memory only (never `localStorage`) — ARCHITECTURE.md §8.
