@@ -1,0 +1,15 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, docker-build]
+    steps:
+      - name: Trigger Render deploy
+        run: |
+          echo "Configure Render deploy hook secret and call it here."
+          # curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
