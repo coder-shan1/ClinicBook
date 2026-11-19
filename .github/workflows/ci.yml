@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, development-backend, development-frontend]
+
+jobs:
+  backend:
+    name: Backend (${{ matrix.db }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [mysql, postgres]
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root_dev_password
+          MYSQL_DATABASE: clinicbook
+          MYSQL_USER: clinicbook
+          MYSQL_PASSWORD: clinicbook_dev_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -proot_dev_password"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: clinicbook
+          POSTGRES_USER: clinicbook
+          POSTGRES_PASSWORD: clinicbook_dev_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U clinicbook" --health-interval=10s
+          --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Run backend tests (MySQL)
+        if: matrix.db == 'mysql'
+        working-directory: backend
+        run: mvn -B verify -Dspring.datasource.url=jdbc:mysql://localhost:3306/clinicbook?useSSL=false\&allowPublicKeyRetrieval=true\&serverTimezone=UTC -Dspring.datasource.username=clinicbook -Dspring.datasource.password=clinicbook_dev_password
+      - name: Run backend tests (PostgreSQL)
+        if: matrix.db == 'postgres'
+        working-directory: backend
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/clinicbook
+          SPRING_DATASOURCE_USERNAME: clinicbook
+          SPRING_DATASOURCE_PASSWORD: clinicbook_dev_password
+        run: mvn -B verify
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - working-directory: frontend
+        run: |
+          npm ci
+          npm run typecheck
+          npm run lint
+          npm run test:run
+          npm run build
+
+  migrations-parity:
+    name: Migrations parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          test -f backend/src/main/resources/db/migration/mysql/V5__quality.sql
+          test -f backend/src/main/resources/db/migration/postgresql/V5__quality.sql
+          echo "Migration files present for both dialects"
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build
