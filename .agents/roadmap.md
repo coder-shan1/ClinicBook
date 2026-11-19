@@ -118,14 +118,14 @@ Branch: `chore/p5-quality`
 
 Branches: `chore/p6-docker`, `ci/p6-pipeline`
 
-- [ ] 🟧 `backend/Dockerfile` (multi-stage, non-root, healthcheck)
-- [ ] 🟧 `frontend/Dockerfile` + `nginx.conf` (SPA fallback)
-- [ ] 🟧 `docker-compose.yml` (db + backend + frontend + Mailpit), `.env.example` complete
-- [ ] 🟧 `ci.yml`: backend matrix (mysql/postgres), frontend checks, migrations-parity, docker build
-- [ ] 🟧 `deploy.yml`: deploy to Render on `main` after CI passes
-- [ ] 🟧 `dependabot.yml`, `dependency-review` on PRs
-- [ ] 👤 Add required status checks to branch protection once jobs have run once
-- [ ] 🟧 Verify: fresh clone → `docker compose up --build` → app works
+- [x] 🟧 `backend/Dockerfile` (multi-stage, non-root, healthcheck)
+- [x] 🟧 `frontend/Dockerfile` + `nginx.conf` (SPA fallback)
+- [x] 🟧 `docker-compose.yml` (db + backend + frontend + Mailpit), `.env.example` complete
+- [x] 🟧 `ci.yml`: backend matrix (mysql/postgres), frontend checks, migrations-parity, docker build
+- [x] 🟧 `deploy.yml`: deploy to Render on `main` after CI passes
+- [x] 🟧 `dependabot.yml`, `dependency-review` on PRs
+- [x] 👤 Add required status checks to branch protection once jobs have run once
+- [x] 🟧 Verify: fresh clone → `docker compose up --build` → app works
 
 **Exit:** CI is green on PRs; one command starts the whole stack locally.
 
