@@ -1,0 +1,39 @@
+# Production profile: Neon PostgreSQL.
+#
+# Defaults below match your .env values. `mvn spring-boot:run` works with no
+# manual setup. System env vars named CLINICBOOK_DB_* override these defaults.
+spring:
+  datasource:
+    url: "${CLINICBOOK_DB_URL:jdbc:postgresql://ep-jolly-haze-az2w6i4x.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require}"
+    username: "${CLINICBOOK_DB_USER:neondb_owner}"
+    password: "${CLINICBOOK_DB_PASSWORD:npg_Fo5BuJvUCkI3}"
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: ${DB_MIN_IDLE:1}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_MAX_LIFETIME_MS:1800000}
+      keepalive-time: ${DB_KEEPALIVE_TIME_MS:300000}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/postgresql
+
+server:
+  forward-headers-strategy: framework
+
+app:
+  jwt:
+    secret: "${JWT_SECRET:MeJ4ucj7bKJBX7ezPxI8YlWF1p8J5vHj4P4KOi3YAuZFO3WLhXoqih5bh0C+cTkl}"
+  cors:
+    allowed-origins: "${CORS_ORIGIN:http://localhost:5173}"
+  seed:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.clinicbook: INFO
