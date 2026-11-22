@@ -78,7 +78,7 @@ export default function DoctorDetailPage() {
               Consultation fee
             </span>
             <div className="mt-1 text-2xl font-bold text-slate-900">
-              ${Number(doctor.consultationFee).toFixed(2)}
+              ₹{Number(doctor.consultationFee).toFixed(2)}
             </div>
           </div>
         </div>

@@ -299,7 +299,7 @@ export default function BookingSection({ doctor }: { doctor: DoctorResponse }) {
             <div>
               <dt className="text-slate-500">Consultation fee</dt>
               <dd className="font-medium text-slate-900">
-                ${Number(doctor.consultationFee).toFixed(2)}
+                ₹{Number(doctor.consultationFee).toFixed(2)}
               </dd>
             </div>
           </dl>
