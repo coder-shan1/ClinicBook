@@ -2,7 +2,7 @@ spring:
   application:
     name: clinicbook
   profiles:
-    default: local
+    default: prod
   datasource:
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
