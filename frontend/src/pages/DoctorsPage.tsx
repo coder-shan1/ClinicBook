@@ -170,7 +170,7 @@ export default function DoctorsPage() {
                           <StarRating value={doctor.ratingAverage} className="text-xs" />
                           <span>
                             {doctor.ratingCount > 0
-                              ? `${(doctor.ratingAverage ?? 0).toFixed(1)} (${doctor.ratingCount})`
+                                ? `${(doctor.ratingAverage ?? 0).toFixed(1)} (${doctor.ratingCount})`
                               : 'No reviews yet'}
                           </span>
                         </div>
@@ -178,7 +178,7 @@ export default function DoctorsPage() {
 
                       <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
                         <span className="font-semibold text-slate-900">
-                          ${Number(doctor.consultationFee).toFixed(2)}
+                          ₹{Number(doctor.consultationFee).toFixed(2)}
                           <span className="font-normal text-slate-500"> / consultation</span>
                         </span>
                         <span className="text-xs font-semibold text-teal-700 hover:underline">
