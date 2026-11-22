@@ -3,6 +3,11 @@ spring:
     name: clinicbook
   profiles:
     default: local
+  config:
+    # Optional .env support for local runs (`cp .env.sample .env`). Real OS
+    # environment variables always take precedence, and a missing file is ignored.
+    # Render injects the same keys as environment variables, so no .env is needed there.
+    import: optional:file:./.env[.properties],optional:file:../.env[.properties]
   datasource:
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
@@ -29,6 +34,8 @@ spring:
           auth: ${MAIL_SMTP_AUTH:false}
           starttls:
             enable: ${MAIL_STARTTLS:false}
+          ssl:
+            enable: ${MAIL_SSL_ENABLE:false}
   jackson:
     default-property-inclusion: non_null
     deserialization:
@@ -39,7 +46,8 @@ spring:
       strict-duplicate-detection: true
 
 server:
-  port: ${SERVER_PORT:8080}
+  # Render (and most PaaS providers) inject PORT; SERVER_PORT still wins if set.
+  port: ${SERVER_PORT:${PORT:8080}}
   shutdown: graceful
 
 app:
@@ -78,6 +86,9 @@ app:
   seed:
     # Local-profile demo data. Disable with SEED_ENABLED=false.
     enabled: ${SEED_ENABLED:true}
+    # Demo doctor password for the local profile. No default: when blank, demo
+    # doctors are skipped instead of shipping a known credential.
+    demo-password: ${DEMO_DOCTOR_PASSWORD:}
 
 management:
   endpoints:

@@ -1,0 +1,47 @@
+# Production profile: Neon PostgreSQL on Render (or any managed PostgreSQL).
+#
+# Every value is supplied by the environment. There are intentionally no secret
+# defaults here, so the application fails fast instead of starting with a known
+# credential. Activate with SPRING_PROFILES_ACTIVE=prod.
+spring:
+  datasource:
+    # Neon JDBC URL, e.g.
+    # jdbc:postgresql://ep-xxx-pooler.us-east-2.aws.neon.tech/clinicbook?sslmode=require&channelBinding=require
+    # Prefer the direct (non "-pooler") host if you use Flyway with pooled connections.
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: ${DB_MIN_IDLE:1}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_MAX_LIFETIME_MS:1800000}
+      keepalive-time: ${DB_KEEPALIVE_TIME_MS:300000}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/postgresql
+
+server:
+  # Render terminates TLS at its proxy; trust X-Forwarded-* headers.
+  forward-headers-strategy: framework
+
+app:
+  jwt:
+    # Required. Generate with: openssl rand -base64 48
+    secret: ${JWT_SECRET}
+  cors:
+    # Required, comma-separated list of real frontend origins (no trailing slash).
+    allowed-origins: ${CORS_ORIGIN}
+  seed:
+    # Demo data is local-only. Never seed a production database.
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.clinicbook: INFO

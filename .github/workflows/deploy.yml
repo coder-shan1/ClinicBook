@@ -1,15 +1,26 @@
 name: Deploy
 
 on:
-  push:
+  # Deploy only after the CI workflow succeeds on main.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    needs: [backend, frontend, docker-build]
     steps:
       - name: Trigger Render deploy
+        env:
+          RENDER_BACKEND_HOOK: ${{ secrets.RENDER_BACKEND_HOOK }}
         run: |
-          echo "Configure Render deploy hook secret and call it here."
-          # curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
+          if [ -z "$RENDER_BACKEND_HOOK" ]; then
+            echo "::error::RENDER_BACKEND_HOOK repository secret is not set"
+            exit 1
+          fi
+          curl -fsS -X POST "$RENDER_BACKEND_HOOK"

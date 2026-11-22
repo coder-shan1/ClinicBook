@@ -17,7 +17,7 @@ optimistic locking, and role-based access control.
 | 🟧 Working hours & time-off (doctor) | ✅ Completed | `/api/v1/doctors/me/working-hours`, `/api/v1/doctors/me/time-off` |
 | 🟧 Slot generation (next 30 days, minus time off) | ✅ Completed | `/api/v1/doctors/{id}/slots?date=` |
 | 🟧 `@Scheduled` nightly job + immediate regen on schedule change | ✅ Completed | `SLOT_NIGHTLY_CRON`, `/api/v1/doctors/me/slots/regenerate` |
-| 🟧 Seed data (6 fake specialties + doctors, `Doctor123!`) | ✅ Completed | `local` profile only, `SEED_ENABLED=false` to disable |
+| 🟧 Seed data (6 fake specialties + doctors, password from `DEMO_DOCTOR_PASSWORD`) | ✅ Completed | `local` profile only, `SEED_ENABLED=false` to disable |
 
 ---
 
@@ -28,7 +28,7 @@ ClinicBook/
 ├── backend/             # Spring Boot 3.5 (Java 21), Maven, Flyway
 │   ├── src/main/java/  # Feature‑first packages: auth, user, doctor, schedule, admin
 │   ├── src/main/resources/db/migration/{mysql,postgresql}/  # V1__users.sql, V2__clinic_domain.sql
-│   └── src/main/resources/application-{local,}.yml
+│   └── src/main/resources/application-{local,prod}.yml
 ├── frontend/            # React 18 + Vite + TypeScript + Tailwind
 │   ├── src/features/doctor/  # DoctorsPage, useDoctors hook
 │   └── src/mocks/  # MSW handlers for Phase 2 endpoints
@@ -95,8 +95,9 @@ ClinicBook/
 
 ### Seed data (local profile only)
 On first start with `local` profile, six fake specialties and doctors are created idempotently.
-Every demo doctor signs in with password `Doctor123!`. Set `SEED_ENABLED=false` to disable;
-the runner never runs in tests or production.
+Every demo doctor signs in with the password in `DEMO_DOCTOR_PASSWORD` (seeding is skipped
+when it is blank). Set `SEED_ENABLED=false` to disable; the runner never runs in tests or
+production.
 
 ### Tests
 - Slot generation edge cases (time off, UTC/ DST, overlapping hours)
@@ -132,10 +133,15 @@ the runner never runs in tests or production.
 ### Backend
 ```bash
 cd backend
+cp .env.sample .env          # fill in JWT_SECRET and DB password
 mvn spring-boot:run          # or: ./mvnw spring-boot:run
-# -DskipTests for faster startup
-# Profile: `local` (default) creates seed data
+# Profile: `local` (default) creates seed data; prod uses Neon PostgreSQL
 ```
+
+### Production (Render + Neon)
+See [`backend/README.md`](backend/README.md#deploy-to-render--neon) and the root
+[`render.yaml`](render.yaml). Set the secrets from `backend/.env.sample` in the Render
+dashboard; never commit a real `.env`.
 
 ### Frontend
 ```bash

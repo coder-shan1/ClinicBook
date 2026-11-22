@@ -15,6 +15,7 @@ import com.clinicbook.user.User;
 import com.clinicbook.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -45,7 +46,6 @@ import java.util.Map;
 public class LocalDataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(LocalDataSeeder.class);
-    private static final String DEMO_PASSWORD = "Doctor123!";
 
     private static final List<SpecialtySeed> SPECIALTIES = List.of(
             new SpecialtySeed("Cardiology", "Heart and vascular care"),
@@ -84,6 +84,7 @@ public class LocalDataSeeder implements ApplicationRunner {
     private final SlotGenerationService slotGenerationService;
     private final ClinicProperties clinicProperties;
     private final Clock clock;
+    private final String demoPassword;
 
     public LocalDataSeeder(UserRepository userRepository,
                            SpecialtyRepository specialtyRepository,
@@ -93,7 +94,8 @@ public class LocalDataSeeder implements ApplicationRunner {
                            PasswordEncoder passwordEncoder,
                            SlotGenerationService slotGenerationService,
                            ClinicProperties clinicProperties,
-                           Clock clock) {
+                           Clock clock,
+                           @Value("${app.seed.demo-password:}") String demoPassword) {
         this.userRepository = userRepository;
         this.specialtyRepository = specialtyRepository;
         this.doctorRepository = doctorRepository;
@@ -103,11 +105,16 @@ public class LocalDataSeeder implements ApplicationRunner {
         this.slotGenerationService = slotGenerationService;
         this.clinicProperties = clinicProperties;
         this.clock = clock;
+        this.demoPassword = demoPassword;
     }
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        if (demoPassword == null || demoPassword.isBlank()) {
+            log.info("Skipping local demo seeding: set DEMO_DOCTOR_PASSWORD to enable demo doctors");
+            return;
+        }
         Map<String, Specialty> specialties = seedSpecialties();
         int created = 0;
         for (DoctorSeed seed : DOCTORS) {
@@ -116,7 +123,7 @@ public class LocalDataSeeder implements ApplicationRunner {
             }
             User user = userRepository.save(new User(
                     seed.email(),
-                    passwordEncoder.encode(DEMO_PASSWORD),
+                    passwordEncoder.encode(demoPassword),
                     Role.DOCTOR,
                     seed.fullName(),
                     seed.phone()));

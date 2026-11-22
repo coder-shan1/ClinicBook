@@ -1,0 +1,45 @@
+# Render Blueprint for the ClinicBook backend.
+# Create the service with: Render Dashboard -> New -> Blueprint -> this repo.
+# Secrets marked `sync: false` are filled in the Render dashboard, never in git.
+services:
+  - type: web
+    name: clinicbook-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    # Deploys are triggered by GitHub Actions after CI passes (see .github/workflows/deploy.yml).
+    autoDeploy: false
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_POOL_SIZE
+        value: "5"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ISSUER
+        value: clinicbook
+      - key: JWT_ACCESS_TOKEN_TTL
+        value: 15m
+      - key: JWT_REFRESH_TOKEN_TTL
+        value: 7d
+      - key: CORS_ORIGIN
+        sync: false
+      - key: CLINIC_TIME_ZONE
+        value: Asia/Kolkata
+      - key: CLINIC_NAME
+        value: ClinicBook
+      - key: SEED_ENABLED
+        value: "false"
+      - key: NOTIFICATIONS_ENABLED
+        value: "false"
+      # To enable email later, add MAIL_HOST, MAIL_PORT, MAIL_USERNAME,
+      # MAIL_PASSWORD, MAIL_SMTP_AUTH, MAIL_STARTTLS, MAIL_SSL_ENABLE and
+      # MAIL_FROM in the Render dashboard, then set NOTIFICATIONS_ENABLED=true.

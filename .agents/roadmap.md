@@ -135,10 +135,10 @@ Branches: `chore/p6-docker`, `ci/p6-pipeline`
 
 Branch: `chore/p7-deploy`
 
-- [ ] 👤 Create Neon project and database; copy pooled connection string (`sslmode=require`)
+- [ ] 👤 Create Neon project and database; copy the direct JDBC connection string (`sslmode=require`)
 - [ ] 👤 Create Render web service (backend, Docker) and static site (frontend) or Docker service
 - [ ] 👤 Set env vars on Render (`SPRING_PROFILES_ACTIVE=prod`, `DB_*`, `JWT_SECRET`, `CORS_ORIGIN`, `MAIL_*`, `VITE_API_URL`)
-- [ ] 🟧 `application-prod.yml`: Postgres dialect, Flyway location `postgresql`, small Hikari pool, no SQL logging
+- [x] 🟧 `application-prod.yml`: Postgres dialect, Flyway location `postgresql`, small Hikari pool, no SQL logging
 - [ ] 🟧 Confirm Flyway runs all Postgres migrations on first boot
 - [ ] 🟧 Seed a demo admin/doctor/patient (fake data) via a guarded one-time script, not committed credentials
 - [ ] 👤 Smoke test the live site; add health check path on Render (`/actuator/health`)

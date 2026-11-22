@@ -2,12 +2,13 @@ spring:
   datasource:
     url: ${CLINICBOOK_DB_URL:jdbc:mysql://localhost:3306/clinicbook?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${CLINICBOOK_DB_USER:clinicbook}
-    password: ${CLINICBOOK_DB_PASSWORD:clinicbook}
+    # No default: copy .env.sample to .env (or export the variable) before running.
+    password: ${CLINICBOOK_DB_PASSWORD}
 
 app:
   jwt:
-    # Development-only key so the local profile starts without configuration.
-    secret: ${JWT_SECRET:dev-only-clinicbook-secret-change-me-0123456789abcdef0123456789abcdef}
+    # No default: copy .env.sample to .env and set JWT_SECRET (>= 32 bytes).
+    secret: ${JWT_SECRET}
 
 logging:
   level:

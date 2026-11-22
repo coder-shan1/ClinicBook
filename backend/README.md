@@ -8,6 +8,7 @@ Spring Boot 3.5 (Java 21) API for ClinicBook. Schema is owned by Flyway; JPA run
 - JDK 21
 - Maven 3.9+
 - MySQL 8 running locally with a database named `clinicbook`
+  (production uses Neon PostgreSQL; see [Deploy to Render + Neon](#deploy-to-render--neon))
 
 ```sql
 CREATE DATABASE clinicbook CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -16,14 +17,23 @@ CREATE DATABASE clinicbook CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ## Run locally
 
 ```bash
+cp .env.sample .env      # then set JWT_SECRET (openssl rand -base64 48)
 mvn spring-boot:run
 ```
 
-The `local` profile is the default. It reads `CLINICBOOK_DB_URL`, `CLINICBOOK_DB_USER`,
-and `CLINICBOOK_DB_PASSWORD`, falling back to `jdbc:mysql://localhost:3306/clinicbook`,
-`clinicbook`, `clinicbook`. Local overrides are namespaced so unrelated `DB_*`
-environment variables on the machine cannot break ClinicBook. Production uses `DB_*`
-from Phase 7 onward.
+Spring imports `.env` automatically when it exists (OS environment variables still win),
+so no export step is needed. The `local` profile is the default and reads
+`CLINICBOOK_DB_URL`, `CLINICBOOK_DB_USER` and `CLINICBOOK_DB_PASSWORD`. Local overrides are
+namespaced so unrelated `DB_*` environment variables on the machine cannot break ClinicBook.
+`JWT_SECRET` and `CLINICBOOK_DB_PASSWORD` have no defaults; the app fails fast when they are
+missing. Production uses `DB_URL`, `DB_USER` and `DB_PASSWORD` with the `prod` profile.
+
+> Copying `.env.sample` gives you placeholder values for secrets — replace them with real
+> values before starting the app.
+
+To run the app locally against Neon instead of MySQL, fill `DB_URL`, `DB_USER` and
+`DB_PASSWORD`, then set `SPRING_PROFILES_ACTIVE=prod` in your shell (profile activation
+does not come from an imported `.env` file).
 
 Health check: <http://localhost:8080/actuator/health>
 Swagger UI: <http://localhost:8080/swagger-ui.html>
@@ -108,8 +118,9 @@ Stateless JWT authentication with rotating refresh tokens.
 
 With the default `local` profile, a runner creates six fake specialties and doctors on
 first start. The data is idempotent and uses `@example.com` addresses only. Every demo
-doctor signs in with password `Doctor123!`. Set `SEED_ENABLED=false` to turn it off;
-the runner never loads in tests or production.
+doctor signs in with the password in `DEMO_DOCTOR_PASSWORD`; when that variable is blank,
+demo doctors are skipped. Set `SEED_ENABLED=false` to turn it off entirely; the runner
+never loads in tests or production.
 
 ## Appointments
 
@@ -211,18 +222,28 @@ succeeds.
 
 ## Configuration
 
-| Variable | Default (local) | Purpose |
+| Variable | Default | Purpose |
 |---|---|---|
-| `CLINICBOOK_DB_URL` | `jdbc:mysql://localhost:3306/clinicbook?...` | JDBC URL |
-| `CLINICBOOK_DB_USER` | `clinicbook` | Database user |
-| `CLINICBOOK_DB_PASSWORD` | `clinicbook` | Database password |
-| `DB_POOL_SIZE` | `10` | Hikari maximum pool size |
+| `SPRING_PROFILES_ACTIVE` | `local` | `local` = MySQL, `prod` = Neon PostgreSQL |
+| `PORT` | Render-provided | PaaS HTTP port; `SERVER_PORT` wins when both are set |
 | `SERVER_PORT` | `8080` | HTTP port |
-| `JWT_SECRET` | dev-only key in `application-local.yml` | HMAC signing key, **at least 32 bytes**. Required outside `local` |
+| `DB_URL` | none (**required** in `prod`) | Neon JDBC URL, e.g. `jdbc:postgresql://host/db?sslmode=require&channelBinding=require` |
+| `DB_USER` | none (**required** in `prod`) | Neon database user |
+| `DB_PASSWORD` | none (**required** in `prod`) | Neon database password |
+| `DB_POOL_SIZE` | `5` in `prod`, `10` otherwise | Hikari maximum pool size |
+| `DB_MIN_IDLE` | `1` | Hikari minimum idle connections |
+| `DB_CONNECTION_TIMEOUT_MS` | `30000` | Hikari connection timeout |
+| `DB_IDLE_TIMEOUT_MS` | `600000` | Hikari idle timeout |
+| `DB_MAX_LIFETIME_MS` | `1800000` | Hikari maximum connection lifetime |
+| `DB_KEEPALIVE_TIME_MS` | `300000` | Hikari keepalive (helps with Neon scale-to-zero) |
+| `CLINICBOOK_DB_URL` | local MySQL URL | `local` profile JDBC URL |
+| `CLINICBOOK_DB_USER` | `clinicbook` | `local` profile database user |
+| `CLINICBOOK_DB_PASSWORD` | none (**required** in `local`) | `local` profile database password |
+| `JWT_SECRET` | none (**required** everywhere) | HMAC signing key, **at least 32 bytes** |
 | `JWT_ISSUER` | `clinicbook` | Access-token issuer claim |
 | `JWT_ACCESS_TOKEN_TTL` | `15m` | Access-token lifetime |
 | `JWT_REFRESH_TOKEN_TTL` | `7d` | Refresh-token lifetime |
-| `CORS_ORIGIN` | `http://localhost:5173` | Allowed frontend origin(s), comma separated |
+| `CORS_ORIGIN` | `http://localhost:5173` local, **required** in `prod` | Allowed frontend origin(s), comma separated |
 | `LOGIN_RATE_LIMIT_MAX_ATTEMPTS` | `5` | Login attempts per window per IP |
 | `LOGIN_RATE_LIMIT_WINDOW` | `1m` | Login rate-limit window |
 | `CLINIC_TIME_ZONE` | `Asia/Kolkata` | Zone used to interpret working hours and clinic dates |
@@ -235,25 +256,83 @@ succeeds.
 | `MAIL_USERNAME` | empty | SMTP username, if the server requires auth |
 | `MAIL_PASSWORD` | empty | SMTP password |
 | `MAIL_SMTP_AUTH` | `false` | Enable SMTP authentication |
-| `MAIL_STARTTLS` | `false` | Enable STARTTLS |
+| `MAIL_STARTTLS` | `false` | Enable STARTTLS (port 587) |
+| `MAIL_SSL_ENABLE` | `false` | Enable implicit TLS (port 465) |
 | `MAIL_FROM` | `no-reply@clinicbook.local` | Sender address on appointment emails |
 | `NOTIFICATIONS_ENABLED` | `true` | Master switch for appointment email and the reminder job |
 | `CLINIC_NAME` | `ClinicBook` | Clinic name shown in email subjects and bodies |
 | `REMINDER_CRON` | `0 0 * * * *` | Reminder sweep schedule (clinic timezone) |
 | `REMINDER_LEAD` | `24h` | How far ahead of the start a reminder is sent |
 | `SEED_ENABLED` | `true` | Create fake local-profile demo data on startup |
+| `DEMO_DOCTOR_PASSWORD` | none | Password for seeded demo doctors; seeding is skipped when blank |
+| `JAVA_OPTS` | see `Dockerfile` | JVM flags for the container image |
 
-The local JWT key exists only so the `local` profile starts without setup. Never use it in
-production; set `JWT_SECRET` to a random value of at least 32 bytes.
+`backend/.env.sample` is the copy-paste template for every key above (local and
+production sections). Secrets are never committed: `application-prod.yml` has no
+fallback values for `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET` or `CORS_ORIGIN`.
 
-Only `health` and `info` Actuator endpoints are exposed. Production profile and
-PostgreSQL settings arrive in Phase 7.
+Only `health`, `info` and `metrics` Actuator endpoints are exposed.
+
+## Deploy to Render + Neon
+
+`render.yaml` at the repository root builds `backend/Dockerfile` and runs the image with
+`SPRING_PROFILES_ACTIVE=prod`.
+
+1. **Neon** — create a project/database, then copy the **JDBC** connection string from
+   *Connect*. Use the direct host (no `-pooler`) so Flyway and Hibernate prepared
+   statements behave; append `?sslmode=require&channelBinding=require`. If you must use
+   the pooled host, add `&prepareThreshold=0`. Flyway creates the schema on first boot
+   from `db/migration/postgresql`.
+2. **Render** — *New → Blueprint* and select this repo, or create a Web Service with
+   Runtime **Docker**, Dockerfile `backend/Dockerfile` and context `backend`. Set
+   `DB_URL`, `DB_USER`, `DB_PASSWORD` and `CORS_ORIGIN`; `JWT_SECRET` is generated by the
+   blueprint. The health check is `/actuator/health`. The app binds to Render's `PORT`.
+3. **Frontend** — build it with `VITE_API_URL=https://<service>.onrender.com/api/v1`.
+4. **Auto-deploy** — Render's deploy hook URL goes in the GitHub repository secret
+   `RENDER_BACKEND_HOOK`. `.github/workflows/deploy.yml` calls it only after CI passes.
+
+The free Render plan spins down when idle; the first request after that is slow. Use a
+paid plan for a real clinic deployment.
+
 
 ## Migrations
 
 Flyway resolves `classpath:db/migration/{vendor}`, so migrations live in
 `src/main/resources/db/migration/mysql/` and `.../postgresql/`. Every migration must
 exist in both folders with the same filename.
+
+### Apply the Postgres schema to Neon manually
+
+Render runs Flyway automatically on every boot, so this is optional. It is useful for
+verifying the schema before the first deploy. The `flyway-maven-plugin` is configured to
+use only the `postgresql` migrations.
+
+```bash
+cd backend
+
+# Fill these with the Neon connection details (shell env, not committed)
+export DB_URL='jdbc:postgresql://<host>/<db>?sslmode=require&channelBinding=require'
+export DB_USER='<neon-user>'
+export DB_PASSWORD='<neon-password>'
+
+# Check, apply, verify
+mvn -B flyway:info   -Dflyway.url="$DB_URL" -Dflyway.user="$DB_USER" -Dflyway.password="$DB_PASSWORD"
+mvn -B flyway:migrate -Dflyway.url="$DB_URL" -Dflyway.user="$DB_USER" -Dflyway.password="$DB_PASSWORD"
+mvn -B flyway:validate -Dflyway.url="$DB_URL" -Dflyway.user="$DB_USER" -Dflyway.password="$DB_PASSWORD"
+```
+
+PowerShell equivalent:
+
+```powershell
+$env:DB_URL = "jdbc:postgresql://<host>/<db>?sslmode=require&channelBinding=require"
+$env:DB_USER = "<neon-user>"
+$env:DB_PASSWORD = "<neon-password>"
+mvn -B flyway:migrate "-Dflyway.url=$env:DB_URL" "-Dflyway.user=$env:DB_USER" "-Dflyway.password=$env:DB_PASSWORD"
+```
+
+`flyway:repair` fixes the schema history table only; it never re-runs a failed migration
+silently. The schema is owned by Flyway — do not create tables in Neon by hand.
+
 
 ## Package layout
 
