@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,9 @@ import java.time.DayOfWeek;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "working_hours")
+@Table(name = "working_hours", uniqueConstraints = @UniqueConstraint(
+        name = "uk_working_hours_doctor_day_start",
+        columnNames = {"doctor_id", "day_of_week", "start_time"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class WorkingHours {

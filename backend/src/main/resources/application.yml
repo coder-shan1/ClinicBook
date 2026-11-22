@@ -10,10 +10,9 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: UTC
+    # Do not set hibernate.jdbc.time_zone: it also shifts LocalTime values stored in
+    # `time without time zone` columns (working_hours), making the schedule depend on
+    # the JVM's default timezone. Instant/timestamptz columns are absolute already.
   flyway:
     enabled: true
     locations: classpath:db/migration/{vendor}

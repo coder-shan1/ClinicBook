@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:./.env[.properties]
   datasource:
     url: ${CLINICBOOK_DB_URL:jdbc:mysql://localhost:3306/clinicbook?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${CLINICBOOK_DB_USER:clinicbook}

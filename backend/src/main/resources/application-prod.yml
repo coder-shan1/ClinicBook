@@ -1,12 +1,17 @@
 # Production profile: Neon PostgreSQL.
 #
-# Defaults below match your .env values. `mvn spring-boot:run` works with no
-# manual setup. System env vars named CLINICBOOK_DB_* override these defaults.
+# All secrets come from the environment (or backend/.env locally). Nothing is
+# committed here; a missing database URL/credential or JWT secret fails startup.
+# CLINICBOOK_DB_* is preferred, with DB_* accepted for simpler deployments.
 spring:
+  # Optional local file so `mvn spring-boot:run` can pick up backend/.env.
+  # The file stays out of git; real environment variables always win.
+  config:
+    import: optional:file:./.env[.properties]
   datasource:
-    url: "${CLINICBOOK_DB_URL:jdbc:postgresql://ep-jolly-haze-az2w6i4x.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require}"
-    username: "${CLINICBOOK_DB_USER:neondb_owner}"
-    password: "${CLINICBOOK_DB_PASSWORD:npg_Fo5BuJvUCkI3}"
+    url: "${CLINICBOOK_DB_URL:${DB_URL:}}"
+    username: "${CLINICBOOK_DB_USER:${DB_USER:}}"
+    password: "${CLINICBOOK_DB_PASSWORD:${DB_PASSWORD:}}"
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:5}
       minimum-idle: ${DB_MIN_IDLE:1}
@@ -15,7 +20,6 @@ spring:
       max-lifetime: ${DB_MAX_LIFETIME_MS:1800000}
       keepalive-time: ${DB_KEEPALIVE_TIME_MS:300000}
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
   flyway:
@@ -32,7 +36,7 @@ server:
 
 app:
   jwt:
-    secret: "${JWT_SECRET:MeJ4ucj7bKJBX7ezPxI8YlWF1p8J5vHj4P4KOi3YAuZFO3WLhXoqih5bh0C+cTkl}"
+    secret: "${JWT_SECRET:}"
   cors:
     allowed-origins: "${CORS_ORIGIN:http://localhost:5173}"
   notifications:

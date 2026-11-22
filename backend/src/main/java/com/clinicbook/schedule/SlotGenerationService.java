@@ -4,6 +4,8 @@ import com.clinicbook.common.error.ApiException;
 import com.clinicbook.config.ClinicProperties;
 import com.clinicbook.doctor.Doctor;
 import com.clinicbook.doctor.DoctorRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,19 +36,22 @@ public class SlotGenerationService {
     private final TimeSlotRepository timeSlotRepository;
     private final ClinicProperties clinicProperties;
     private final Clock clock;
+    private final EntityManager entityManager;
 
     public SlotGenerationService(DoctorRepository doctorRepository,
                                  WorkingHoursRepository workingHoursRepository,
                                  TimeOffRepository timeOffRepository,
                                  TimeSlotRepository timeSlotRepository,
                                  ClinicProperties clinicProperties,
-                                 Clock clock) {
+                                 Clock clock,
+                                 EntityManager entityManager) {
         this.doctorRepository = doctorRepository;
         this.workingHoursRepository = workingHoursRepository;
         this.timeOffRepository = timeOffRepository;
         this.timeSlotRepository = timeSlotRepository;
         this.clinicProperties = clinicProperties;
         this.clock = clock;
+        this.entityManager = entityManager;
     }
 
     /**
@@ -89,11 +94,12 @@ public class SlotGenerationService {
 
         int removed = 0;
         int resized = 0;
+        List<Long> removedIds = new ArrayList<>();
         for (TimeSlot slot : existing) {
             Instant desiredEnd = desired.get(slot.getStartAt());
             if (desiredEnd == null) {
                 if (slot.getStatus() == TimeSlotStatus.AVAILABLE) {
-                    timeSlotRepository.delete(slot);
+                    removedIds.add(slot.getId());
                     removed++;
                 }
             } else if (slot.getStatus() == TimeSlotStatus.AVAILABLE
@@ -102,17 +108,44 @@ public class SlotGenerationService {
                 resized++;
             }
         }
+        if (!removedIds.isEmpty()) {
+            // One statement beats N round trips on a remote database.
+            Query deleteQuery = entityManager.createNativeQuery(
+                    "DELETE FROM time_slot WHERE id IN (" +
+                            String.join(",", java.util.Collections.nCopies(removedIds.size(), "?")) + ")");
+            for (int i = 0; i < removedIds.size(); i++) {
+                deleteQuery.setParameter(i + 1, removedIds.get(i));
+            }
+            deleteQuery.executeUpdate();
+        }
 
-        List<TimeSlot> additions = new ArrayList<>();
+        List<Instant> additionStarts = new ArrayList<>();
+        List<Instant> additionEnds = new ArrayList<>();
         for (Map.Entry<Instant, Instant> entry : desired.entrySet()) {
             if (!existingByStart.containsKey(entry.getKey())) {
-                additions.add(new TimeSlot(doctor, entry.getKey(), entry.getValue()));
+                additionStarts.add(entry.getKey());
+                additionEnds.add(entry.getValue());
             }
         }
-        if (!additions.isEmpty()) {
-            timeSlotRepository.saveAll(additions);
+        if (!additionStarts.isEmpty()) {
+            StringBuilder sql = new StringBuilder(
+                    "INSERT INTO time_slot (doctor_id, start_at, end_at, status, version) VALUES ");
+            for (int i = 0; i < additionStarts.size(); i++) {
+                if (i > 0) {
+                    sql.append(", ");
+                }
+                sql.append("(?, ?, ?, 'AVAILABLE', 0)");
+            }
+            Query insertQuery = entityManager.createNativeQuery(sql.toString());
+            int parameterIndex = 1;
+            for (int i = 0; i < additionStarts.size(); i++) {
+                insertQuery.setParameter(parameterIndex++, doctor.getId());
+                insertQuery.setParameter(parameterIndex++, additionStarts.get(i));
+                insertQuery.setParameter(parameterIndex++, additionEnds.get(i));
+            }
+            insertQuery.executeUpdate();
         }
-        timeSlotRepository.flush();
+        entityManager.flush();
 
         int available = 0;
         for (Instant start : desired.keySet()) {
@@ -122,7 +155,7 @@ public class SlotGenerationService {
             }
         }
 
-        return new SlotGenerationResult(now, additions.size(), removed, resized, available);
+        return new SlotGenerationResult(now, additionStarts.size(), removed, resized, available);
     }
 
     private void addSlotsForDay(Map<Instant, Instant> desired,
