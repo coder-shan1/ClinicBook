@@ -22,6 +22,11 @@ spring:
     enabled: true
     locations: classpath:db/migration/postgresql
 
+management:
+  health:
+    mail:
+      enabled: false
+
 server:
   forward-headers-strategy: framework
 
@@ -30,6 +35,8 @@ app:
     secret: "${JWT_SECRET:MeJ4ucj7bKJBX7ezPxI8YlWF1p8J5vHj4P4KOi3YAuZFO3WLhXoqih5bh0C+cTkl}"
   cors:
     allowed-origins: "${CORS_ORIGIN:http://localhost:5173}"
+  notifications:
+    enabled: false
   seed:
     enabled: false
 
