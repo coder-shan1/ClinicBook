@@ -10,6 +10,8 @@ import com.clinicbook.user.Role;
 import com.clinicbook.user.User;
 import com.clinicbook.user.UserRepository;
 import com.clinicbook.user.dto.UserResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +25,7 @@ import java.util.Locale;
 @Service
 public class AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final String INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
 
     private final UserRepository userRepository;
@@ -145,6 +148,9 @@ public class AuthService {
         refreshTokenRepository.save(refreshToken);
 
         String accessToken = jwtService.generateAccessToken(user);
+        log.info("=== JWT ACCESS TOKEN ISSUED for userId={} email={} role={} ===", user.getId(), user.getEmail(), user.getRole());
+        log.info("Token: {}", accessToken);
+        log.info("==================================================");
         return new AuthResponse(
                 accessToken,
                 rawRefreshToken,
